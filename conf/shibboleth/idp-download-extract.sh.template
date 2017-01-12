@@ -1,0 +1,7 @@
+#!/bin/sh
+cd /usr/local/src
+if [ ! -f {{ idpconf_shibboleth_version }}.tar.gz ]
+then
+     wget http://shibboleth.net/downloads/identity-provider/latest/{{ idpconf_shibboleth_version }}.tar.gz
+fi
+tar zxvf {{ idpconf_shibboleth_version }}.tar.gz

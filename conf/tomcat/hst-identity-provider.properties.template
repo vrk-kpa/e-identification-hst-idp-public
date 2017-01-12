@@ -1,0 +1,13 @@
+# Shibboleth Identity Provider properties
+failure.param.internal=hstint
+failure.param.entityid=entid
+hst.prompt.url ={{ hst_prompt_url }}
+
+#Certificate util properties
+ica.dir.path={{ ica_dir_path }}
+ca.dir.path={{ ca_dir_path }}
+crl.dir.path={{ crl_dir_path }}
+ca.orgname.set={{ ca_ou_name_list }}
+
+satu.issuer.delimiter={{ satu_issuer_delimiter }}
+crl.updatetime.validation={{ crl_updatetime_validation }}
