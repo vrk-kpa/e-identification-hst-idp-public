@@ -1,0 +1,11 @@
+#!/bin/sh
+export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+cd /usr/local/src/{{ idpconf_shibboleth_version }}/bin
+./install.sh \
+    -Didp.src.dir=/usr/local/src/{{ idpconf_shibboleth_version }} \
+    -Didp.target.dir=/opt/shibboleth-idp \
+    -Didp.host.name={{ idpconf_host }} \
+    -Didp.scope={{ idpconf_scope }} \
+    -Didp.keystore.password={{ idpconf_keystore_pass }} \
+    -Didp.sealer.password={{ idpconf_sealer_storepass }} \
+    -Didp.merge.properties=/usr/local/src/{{ idpconf_shibboleth_version }}/bin/idp-install.properties

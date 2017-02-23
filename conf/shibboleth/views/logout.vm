@@ -1,0 +1,97 @@
+##
+## Velocity Template for logout flow's concluding view-state
+##
+## Velocity context will contain the following properties
+## flowExecutionUrl - the form action location
+## flowRequestContext - the Spring Web Flow RequestContext
+## flowExecutionKey - the SWF execution key (this is built into the flowExecutionUrl)
+## profileRequestContext - root of context tree
+## logoutContext - context with SPSession details for logout operation
+## multiRPContext - context with RelyingPartyContexts and possibly SP UI information from the metadata
+## encoder - HTMLEncoder class
+## request - HttpServletRequest
+## response - HttpServletResponse
+## environment - Spring Environment object for property resolution
+##
+<!DOCTYPE html>
+<!--[if lte IE 7]> <html lang="fi" itemtype="http://schema.org/WebPage" data-text-size="3" class="no-js text-size-3 lte_ie9 lte_ie8 lte7"> <![endif]-->
+<!--[if IE 8]> <html lang="fi" itemtype="http://schema.org/WebPage" data-text-size="3" class="no-js text-size-3 lte_ie9 lte_ie8 ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="fi" itemtype="http://schema.org/WebPage" data-text-size="3" class="no-js text-size-3 lte_ie9 ie9"> <![endif]-->
+<!--[if gt IE 9]><!--><html lang="fi" itemtype="http://schema.org/WebPage" data-text-size="3" class="no-js text-size-3"><!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Tunnistuspalvelu</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="$request.getContextPath()/stylesheets/style.css">
+        <script src="$request.getContextPath()/js/vendor/modernizr-2.8.3.min.js"></script>
+        <!--[if lt IE 9]>
+        <script src="$request.getContextPath()/js/vendor/respond.js"></script>
+        <![endif]-->
+    </head>
+    <body id="identification-service">
+    <a href="#main" class="visuallyhidden focusable">Siirry suoraan sisältöön</a>
+    <header id="page-header" role="banner">
+        <div class="header-top">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <h1><a href="01_tunnistus_alku.html" title="Siirry etusivulle">Tunnistautuminen</a></h1>
+                        <ul class="language-selection horizontal-list text-small">
+                            <li class="selected">Suomeksi</li>
+                            <li><a href="#sv" lang="sv">På svenska</a></li>
+                            <li><a href="#en" lang="en">In English</a></li>
+                        </ul>
+                        <ul class="adjust-font-size horizontal-list" aria-hidden="true">
+                            <li><button title="Pienennä tekstikokoa" class="decrease-font-size">A-</button></li>
+                            <li><button title="Suurenna tekstikokoa" class="increase-font-size">A+</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main id="main" role="main" name="main">
+        <div class="main">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-12 col-md-8">
+                        <div lang="fi">
+                            <h2>Kirjauduit ulos</h2>
+                            <p>Kirjauduit ulos palvelusta</p>
+                        </div>
+                        <div lang="sv">
+                            <h2>Du har loggat ut</h2>
+                            <p>Du har loggat ut från tjänsten</p>
+                        </div>
+                        <div lang="en">
+                            <h2>You have logged out</h2>
+                            <p>You have logged out from the service</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer id="page-footer" role=”contentinfo”>
+        <div class="container">
+            <div class="row">
+                <div id="footer-logo">
+                    <img src="img/footer-logo2.svg" alt="Väestörekisterikeskus logo">
+                </div>
+                <p>Kansalaisen tunnistuspalvelusta vastaa <a href="#">Väestörekisterikeskus</a></p>
+                <ul class="link-list">
+                    <li><a href="#">Tietoa tunnistautumisesta</a></li>
+                    <li><a href="#">Henkilötietolain mukainen rekisteriseloste</a></li>
+                    <li><a href="#">Ilmoita virheestä tai anna palautetta</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+    <script src="js/vendor/jquery-1.11.2.min.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+    </body>
+</html>
