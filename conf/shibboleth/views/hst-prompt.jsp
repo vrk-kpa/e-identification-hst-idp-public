@@ -262,13 +262,16 @@
                    target="_blank">Väestörekisterikeskus</a>
             </p>
             <ul class="link-list">
-                <li><a target="_blank" data-i18n="footer__tietoa_tunnistautumisesta" href="/sivut/info/tietoapalvelusta/">Tietoa tunnistautumisesta</a>
+                <li><a target="_blank" id="footer__tietoa_tunnistautumisesta" data-i18n="footer__tietoa_tunnistautumisesta" href="/sivut/info/tietoapalvelusta/">Tietoa tunnistautumisesta</a>
                     <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan<span>
                 </li>
-                <li><a target="_blank" data-i18n="footer__tietosuojaseloste" href="/sivut/info/tietosuojaseloste/">Henkilötietolain mukainen tietosuojaseloste</a>
+                <li><a target="_blank" id="footer__palaute" data-i18n="footer__anna_palautetta" href="/sivut/info/palaute/">Anna palautetta</a>
                     <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan<span>
                 </li>
-                <li><a target="_blank" data-i18n="footer__palaute" href="/sivut/info/palaute/">Ilmoita virheestä tai anna palautetta</a>
+                <li><a target="_blank" id="footer__tietosuojaseloste" data-i18n="footer__tietosuojaseloste" href="/sivut/info/tietosuojaseloste/">Henkilötietolain mukainen tietosuojaseloste</a>
+                    <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan<span>
+                </li>
+                <li><a target="_blank" id="footer__virhepalaute" data-i18n="footer__virhepalaute" href="/sivut/info/virhepalaute/">Ilmoita virheestä</a>
                     <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan<span>
                 </li>
             </ul>

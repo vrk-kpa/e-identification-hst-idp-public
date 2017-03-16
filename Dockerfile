@@ -4,7 +4,6 @@ FROM dev-docker-registry.kapa.ware.fi/e-identification-tomcat-idp-3.2.1-base-ima
 
 # Copy files
 
-COPY License.info /License.info
 COPY target/site /site
 COPY target/kapa-hst-identity-provider-jar-with-dependencies.jar /opt/shibboleth-idp/edit-webapp/WEB-INF/lib/kapa-hst-identity-provider-jar-with-dependencies.jar
 COPY conf /tmp/conf
