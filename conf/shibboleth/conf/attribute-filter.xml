@@ -20,5 +20,13 @@
             <afp:PermitValueRule xsi:type="basic:ANY" />
         </afp:AttributeRule>
 
+        <afp:AttributeRule attributeID="nationalIdentificationNumber">
+            <afp:PermitValueRule xsi:type="basic:ANY" />
+        </afp:AttributeRule>
+
+        <afp:AttributeRule attributeID="issuerCN">
+            <afp:PermitValueRule xsi:type="basic:ANY" />
+        </afp:AttributeRule>
+
     </afp:AttributeFilterPolicy>
 </afp:AttributeFilterPolicyGroup>

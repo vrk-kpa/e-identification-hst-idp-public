@@ -29,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+
+import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,9 +65,9 @@ public class CRLCheckTest {
 
         boolean certOK = false;
 
-        CertificateUtil crlUtil = new CertificateUtil(certificate, this.icaPath, this.caPath, this.crlPath, "0");
-        
-        if ( crlUtil.checkCertificateStatus() == true ) {
+        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
+
+        if ( crlUtil.checkCertificateStatus(certificate) != null ) {
             certOK = true;
         }
 
@@ -81,14 +83,17 @@ public class CRLCheckTest {
         X509Certificate certificate = (X509Certificate)cf.generateCertificate(in);
         
         boolean certOK = false;
+        CertificateStatusException.ErrorCode exceptionType = null;
         
-        CertificateUtil crlUtil = new CertificateUtil(certificate, this.icaPath, this.caPath, this.crlPath, "0");
-        
-        if ( crlUtil.checkCertificateStatus() == true ) {
-            certOK = true;
+        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
+
+        try {
+            crlUtil.checkCertificateStatus(certificate);
+        } catch (CertificateStatusException ste ) {
+            exceptionType = ste.getErrorCode();
         }
 
-        Assert.assertEquals(certOK, false);
+        Assert.assertEquals(exceptionType, CertificateStatusException.ErrorCode.CERT_REVOKED);
     }
     
     @Test
@@ -101,9 +106,9 @@ public class CRLCheckTest {
 
         boolean certOK = false;
 
-        CertificateUtil crlUtil = new CertificateUtil(certificate, this.icaPath, this.caPath, this.crlPath, "0");
-        
-        if ( crlUtil.checkCertificateStatus() == true ) {
+        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
+
+        if ( crlUtil.checkCertificateStatus(certificate) != null ) {
             certOK = true;
         }
 

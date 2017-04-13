@@ -148,8 +148,8 @@
                 </div>
             </c:if>
             
-            <!-- Fails to read certificate card -->
-            <c:if test="${param.e == '1'}">
+            <!-- Fails to read certificate card | VARTTI_SERVICE_ERROR | INTERNAL_ERROR -->
+            <c:if test="${param.e == '1' || param.e == '5' || param.e == '6'}">
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">
@@ -201,7 +201,7 @@
             </c:if>
             
             <!-- CERT_REVOKED_OR_NOT_VALID -->
-            <c:if test="${param.e == '3'}">
+            <c:if test="${param.e == '3' || param.e == '7' || param.e == '8' || param.e == '9' || param.e == '10' || param.e == '11' || param.e == '12'}">
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">

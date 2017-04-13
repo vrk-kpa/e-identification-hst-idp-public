@@ -20,10 +20,43 @@
     <!-- ========================================== -->
 
     <!--
-    hst auth principal name -> electronicIdentificationNumber
+        hts card:           hstCardContext.getSatu -> electronicIdentificationNumber
+                            hstCardContext.getIssuerCN -> issuerCN
+
+        organization card:  organizationCardContext.getHetu -> nationalIdentificationNumber
     -->
-    <resolver:AttributeDefinition id="electronicIdentificationNumber" xsi:type="ad:PrincipalName">
+
+    <resolver:AttributeDefinition id="electronicIdentificationNumber" xsi:type="ad:Script">
         <resolver:AttributeEncoder xsi:type="enc:SAML2String" name="urn:oid:1.2.246.22" friendlyName="electronicIdentificationNumber" encodeType="false" />
+        <ad:Script><![CDATA[
+          authnContext = resolutionContext.getParent().getSubcontext("net.shibboleth.idp.authn.context.AuthenticationContext");
+          hstCardContext = authnContext.getSubcontext("fi.vm.kapa.identification.shibboleth.extauthn.context.HSTCardContext");
+          if ( hstCardContext != null ) {
+            electronicIdentificationNumber.addValue(hstCardContext.getSatu());
+          }
+        ]]></ad:Script>
+    </resolver:AttributeDefinition>
+
+    <resolver:AttributeDefinition id="nationalIdentificationNumber" xsi:type="ad:Script">
+        <resolver:AttributeEncoder xsi:type="enc:SAML2String" name="urn:oid:1.2.246.21" friendlyName="nationalIdentificationNumber" encodeType="false" />
+        <ad:Script><![CDATA[
+          authnContext = resolutionContext.getParent().getSubcontext("net.shibboleth.idp.authn.context.AuthenticationContext");
+          organizationCardContext = authnContext.getSubcontext("fi.vm.kapa.identification.shibboleth.extauthn.context.OrganizationCardContext");
+          if ( organizationCardContext != null ) {
+            nationalIdentificationNumber.addValue(organizationCardContext.getHetu());
+          }
+        ]]></ad:Script>
+    </resolver:AttributeDefinition>
+
+    <resolver:AttributeDefinition id="issuerCN" xsi:type="ad:Script">
+        <resolver:AttributeEncoder xsi:type="enc:SAML2String" name="urn:oid:1.2.246.517.3002.111.4" friendlyName="issuerCN" encodeType="false" />
+        <ad:Script><![CDATA[
+          authnContext = resolutionContext.getParent().getSubcontext("net.shibboleth.idp.authn.context.AuthenticationContext");
+          hstCardContext = authnContext.getSubcontext("fi.vm.kapa.identification.shibboleth.extauthn.context.HSTCardContext");
+          if ( hstCardContext != null ) {
+            issuerCN.addValue(hstCardContext.getIssuerCN());
+          }
+        ]]></ad:Script>
     </resolver:AttributeDefinition>
 
 </resolver:AttributeResolver>
