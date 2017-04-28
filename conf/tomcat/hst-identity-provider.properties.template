@@ -9,6 +9,8 @@ ca.dir.path={{ ca_dir_path }}
 crl.dir.path={{ crl_dir_path }}
 
 crl.updatetime.validation={{ crl_updatetime_validation }}
+#crl cache entry expiration time in milliseconds
+crl.cache.expiration.time={{ crl_cache_timeout }}
 
 #Organization card specific properties
 oc.ca.orgname.set={{ oc_ca_cn_name_list }}

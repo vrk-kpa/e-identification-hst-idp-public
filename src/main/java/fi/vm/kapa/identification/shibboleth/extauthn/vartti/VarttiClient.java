@@ -58,8 +58,8 @@ public class VarttiClient {
             VarttiResponse varttiResponse = getValidVarttiResponse(response);
             return varttiResponse.getVarttiPerson().getHetu();
         } else {
-            logger.error("Vartti connection error with status code " + status);
-            throw new VarttiServiceException("Vartti connection error with status code " + status);
+            logger.warn("Vartti connection failed with status code " + status);
+            throw new VarttiServiceException("Vartti connection failed with status code " + status);
         }
     }
 
@@ -89,12 +89,12 @@ public class VarttiClient {
             return varttiResponse;
         }
         else if ( varttiResponse.getError() != null ) {
-            String error = "Error from vartti client: " + varttiResponse.getError();
-            logger.error(error);
-            throw new VarttiServiceException(error);
+            String msg = "Vartti client response failed: " + varttiResponse.getError();
+            logger.warn(msg);
+            throw new VarttiServiceException(msg);
         }
         else {
-            logger.error("Vartti client response failed.");
+            logger.warn("Vartti client response failed.");
             throw new VarttiServiceException("Vartti client response failed.");
         }
     }

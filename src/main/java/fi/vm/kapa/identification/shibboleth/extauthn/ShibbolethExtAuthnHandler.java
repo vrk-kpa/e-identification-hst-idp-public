@@ -127,7 +127,7 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
                     httpRequest.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY,
                             AuthnEventIds.NO_CREDENTIALS);
                     ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
-                } else if ( (error.equals(CERT_REVOKED.getCode()) || error.equals(CERT_TYPE_NOT_SUPPORTED.getCode())) && StringUtils.isNotBlank(key)) {
+                } else if ( error.equals(CERT_REVOKED.getCode()) && StringUtils.isNotBlank(key)) {
                     httpRequest.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY,
                             AuthnEventIds.INVALID_CREDENTIALS);
                     ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
@@ -165,8 +165,8 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
                 OrganizationCardContext occ = new OrganizationCardContext(varttiClient.getHetu(subjectSerialNumber, issuerCommonName, String.valueOf(cert.getSerialNumber())));
                 ac.addSubcontext(occ);
             } catch (VarttiServiceException vse) {
-                log.warn("Error from vartti client", vse);
-                throw new CertificateStatusException("Error from vartti client", VARTTI_SERVICE_ERROR);
+                log.warn("Getting hetu from vartti client failed", vse);
+                throw new CertificateStatusException("Getting hetu from vartti client failed", VARTTI_SERVICE_ERROR);
             }
         }
         else {

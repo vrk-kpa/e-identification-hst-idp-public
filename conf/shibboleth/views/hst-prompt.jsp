@@ -200,8 +200,8 @@
                 </div>
             </c:if>
             
-            <!-- CERT_REVOKED_OR_NOT_VALID -->
-            <c:if test="${param.e == '3' || param.e == '7' || param.e == '8' || param.e == '9' || param.e == '10' || param.e == '11' || param.e == '12'}">
+            <!-- CERT_REVOKED_OR_NOT_VALID || CERT_EXPIRED || CRL_MISSING || CRL_SIGNATURE_FAILED -->
+            <c:if test="${param.e == '3' || param.e == '7' || param.e == '11' || param.e == '12'}">
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">
@@ -224,8 +224,8 @@
                 </div>
             </c:if>
             
-            <!-- CERT_TYPE_NOT_SUPPORTED -->
-            <c:if test="${param.e == '4'}">
+            <!-- UNKNOWN_CA || UNKNOWN_ICA -->
+            <c:if test="${param.e == '8' || param.e == '9'}">
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">

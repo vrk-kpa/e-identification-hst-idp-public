@@ -24,6 +24,8 @@
 package fi.vm.kapa.identification.shibboleth.extauthn.config;
 
 import fi.vm.kapa.identification.shibboleth.extauthn.CertificateUtil;
+import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,25 +33,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CertificateUtilConfiguration {
 
-    //intermediate certificate path
+    // intermediate certificate path
     @Value("${ica.dir.path}")
     private String icaPath;
 
-    //root CA directory path
+    // root CA directory path
     @Value("${ca.dir.path}")
     private String caPath;
 
-    //crl directory path
-    @Value("${crl.dir.path}")
-    private String crlPath;
-
-    //Conditional value for CRL updatetime verification
-    @Value("${crl.updatetime.validation}")
-    private String crlUpdateTimeValidation;
+    @Autowired
+    private CrlChecker crlChecker;
 
     @Bean(name = "certificateUtil")
     CertificateUtil provideCertificateUtil() {
-        return new CertificateUtil(icaPath, caPath, crlPath, crlUpdateTimeValidation);
+        return new CertificateUtil(icaPath, caPath, crlChecker);
     }
 
 }

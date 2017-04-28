@@ -28,24 +28,30 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
-
+import com.google.common.cache.LoadingCache;
+import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500Principal;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class CRLCheckTest {
 
     private String icaPath;
     private String caPath;
-    private String crlPath;
-    
+
     @Before
     public void setup() {
         this.icaPath = "src/test/resources/certs";
         this.caPath = "src/test/resources/certs";
-        this.crlPath = "src/test/resources/crls";
     }
         
     @Test
@@ -65,7 +71,8 @@ public class CRLCheckTest {
 
         boolean certOK = false;
 
-        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
+        CrlChecker crlChecker = mock(CrlChecker.class);
+        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, crlChecker);
 
         if ( crlUtil.checkCertificateStatus(certificate) != null ) {
             certOK = true;
@@ -81,11 +88,19 @@ public class CRLCheckTest {
         InputStream in = new FileInputStream(file);
         CertificateFactory cf = CertificateFactory.getInstance("X509");
         X509Certificate certificate = (X509Certificate)cf.generateCertificate(in);
+
+        File crlFile = new File(classLoader.getResource("crls/crl.crt").getFile());
+        InputStream crlIn = new FileInputStream(crlFile);
+        CertificateFactory crl_cf = CertificateFactory.getInstance("X509");
+        X509CRL crl = (X509CRL)crl_cf.generateCRL(crlIn);
+
+        LoadingCache<X500Principal,X509CRL> crlLoadingCache = mock(LoadingCache.class);
+        when(crlLoadingCache.get(any())).thenReturn(crl);
         
-        boolean certOK = false;
         CertificateStatusException.ErrorCode exceptionType = null;
-        
-        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
+
+        CrlChecker crlChecker = new CrlChecker(crlLoadingCache);
+        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, crlChecker);
 
         try {
             crlUtil.checkCertificateStatus(certificate);
@@ -94,25 +109,6 @@ public class CRLCheckTest {
         }
 
         Assert.assertEquals(exceptionType, CertificateStatusException.ErrorCode.CERT_REVOKED);
-    }
-    
-    @Test
-    public void testCRLUpdatetimeNotValid() throws Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(classLoader.getResource("certs/test-cert.crt").getFile());
-        InputStream in = new FileInputStream(file);
-        CertificateFactory cf = CertificateFactory.getInstance("X509");
-        X509Certificate certificate = (X509Certificate)cf.generateCertificate(in);
-
-        boolean certOK = false;
-
-        CertificateUtil crlUtil = new CertificateUtil(this.icaPath, this.caPath, this.crlPath, "0");
-
-        if ( crlUtil.checkCertificateStatus(certificate) != null ) {
-            certOK = true;
-        }
-
-        Assert.assertEquals(certOK, true);
     }
 
 }
