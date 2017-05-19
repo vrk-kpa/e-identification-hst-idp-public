@@ -80,11 +80,20 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
     @Value("${oc.ca.orgname.set}")
     private String allowedCNOfOrganizationCardCA;
 
+    @Value("${hst.ca.orgname.set}")
+    private String allowedCNOfHstCardCA;
+
+    private Set<String> organizationCardCACommonNames;
+
+    private Set<String> hstCardCACommonNames;
+
     @Override
     public void init(ServletConfig config) throws ServletException {
         WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(config.getServletContext());
         final AutowireCapableBeanFactory beanFactory = springContext.getAutowireCapableBeanFactory();
         beanFactory.autowireBean(this);
+        organizationCardCACommonNames = new HashSet<>(Arrays.asList(allowedCNOfOrganizationCardCA.split(";")));
+        hstCardCACommonNames = new HashSet<>(Arrays.asList(allowedCNOfHstCardCA.split(";")));
     }
 
     @Override
@@ -169,10 +178,14 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
                 throw new CertificateStatusException("Getting hetu from vartti client failed", VARTTI_SERVICE_ERROR);
             }
         }
-        else {
+        else if ( isHstCardType(issuerCommonName) ) {
             // satu
             HSTCardContext hcc = new HSTCardContext(subjectSerialNumber, issuerCommonName);
             ac.addSubcontext(hcc);
+        }
+        else {
+            log.warn("Certificate type is not supported");
+            throw new CertificateStatusException("Certificate type is not supported.", CertificateStatusException.ErrorCode.CERT_TYPE_NOT_SUPPORTED);
         }
     }
 
@@ -207,14 +220,12 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
         }
     }
 
+    private boolean isHstCardType(String issuerCN) {
+        return hstCardCACommonNames.contains(issuerCN);
+    }
+
     private boolean isOrganizationCardType(String issuerCN) {
-        Set<String> allowedCommonNames = new HashSet<>(Arrays.asList(allowedCNOfOrganizationCardCA.split(";")));
-        for ( String allowedName : allowedCommonNames ) {
-            if ( issuerCN.equals(allowedName) ) {
-                return true;
-            }
-        }
-        return false;
+        return organizationCardCACommonNames.contains(issuerCN);
     }
 
 }

@@ -38,7 +38,7 @@ public class IDCardContextTest {
     }
 
     @Test
-    public void OrganizationCardContextReturnsHetuAndNull() throws Exception {
+    public void OrganizationCardContextReturnsHetu() throws Exception {
         OrganizationCardContext idcc = new OrganizationCardContext("TEST_HETU");
         Assert.assertEquals("TEST_HETU", idcc.getHetu());
     }

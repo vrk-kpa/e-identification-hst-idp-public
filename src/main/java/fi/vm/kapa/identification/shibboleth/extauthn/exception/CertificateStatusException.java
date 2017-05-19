@@ -28,6 +28,7 @@ public class CertificateStatusException extends Exception {
     public enum ErrorCode {
         NO_CERT_FOUND("2"),
         CERT_REVOKED("3"),
+        CERT_TYPE_NOT_SUPPORTED("4"),
         VARTTI_SERVICE_ERROR("5"),
         INTERNAL_ERROR("6"),
         CERT_EXPIRED("7"),

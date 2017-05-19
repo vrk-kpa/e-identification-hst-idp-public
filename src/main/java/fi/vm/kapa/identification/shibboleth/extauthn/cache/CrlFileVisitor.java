@@ -34,6 +34,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
+import java.time.Clock;
 import java.util.Date;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
@@ -49,12 +50,15 @@ public class CrlFileVisitor extends SimpleFileVisitor<Path> {
 
     private final String crlUpdatetimeValidation;
 
-    public CrlFileVisitor(X500Principal principal, String crlUpdatetimeValidation) {
+    private final Clock clock;
+
+    CrlFileVisitor(X500Principal principal, String crlUpdatetimeValidation, Clock clock) {
         this.principal = principal;
         this.crlUpdatetimeValidation = crlUpdatetimeValidation;
+        this.clock = clock;
     }
 
-    public X509CRL getCRL() {
+    X509CRL getCRL() {
         return this.crl;
     }
 
@@ -67,7 +71,7 @@ public class CrlFileVisitor extends SimpleFileVisitor<Path> {
                 X509CRL x509Crl=(X509CRL)cf.generateCRL(inputStream);
                 if (x509Crl.getIssuerX500Principal().equals(principal) ) {
                     // Check CRL updatetime validity
-                    if ( new Date().after(x509Crl.getNextUpdate()) ) {
+                    if ( new Date(clock.millis()).after(x509Crl.getNextUpdate()) ) {
                         if ( "0".equals(crlUpdatetimeValidation) ) {
                             // return valid but expired CRL if up to date not found, for testing purposes only!
                             crl = x509Crl;

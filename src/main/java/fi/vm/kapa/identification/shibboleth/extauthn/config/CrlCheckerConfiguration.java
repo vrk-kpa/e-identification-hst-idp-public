@@ -25,6 +25,7 @@ package fi.vm.kapa.identification.shibboleth.extauthn.config;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlCacheLoader;
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlFileVisitor;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ import javax.security.auth.x500.X500Principal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.X509CRL;
+import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
@@ -54,25 +56,12 @@ public class CrlCheckerConfiguration {
     @Value("${crl.updatetime.validation}")
     private String crlUpdateTimeValidation;
 
-
-    private CacheLoader provideCacheLoader(final String crlUpdateTimeValidation, final String crlPath) {
-        return new CacheLoader<X500Principal,X509CRL>() {
-            public X509CRL load(@Nonnull X500Principal principal) throws Exception {
-                logger.debug("CRL not in cache or cache is expired, reloading for principal " + principal.toString());
-                // find crl recursively and return first found
-                CrlFileVisitor visitor = new CrlFileVisitor(principal, crlUpdateTimeValidation);
-                Files.walkFileTree(Paths.get(crlPath), visitor);
-                return visitor.getCRL();
-            }
-        };
-    }
-
     @Bean
     LoadingCache provideCacheImplementation() {
         return CacheBuilder.newBuilder()
                 .maximumSize(1000)
                 .expireAfterWrite(crlCacheExpiration, TimeUnit.MILLISECONDS)
-                .build(provideCacheLoader(crlUpdateTimeValidation, crlPath));
+                .build(new CrlCacheLoader(crlPath, crlUpdateTimeValidation));
     }
 
     @Bean(name = "crlChecker")

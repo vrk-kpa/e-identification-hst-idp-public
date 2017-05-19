@@ -224,8 +224,8 @@
                 </div>
             </c:if>
             
-            <!-- UNKNOWN_CA || UNKNOWN_ICA -->
-            <c:if test="${param.e == '8' || param.e == '9'}">
+            <!-- UNKNOWN_CA || UNKNOWN_ICA || CERT_TYPE_NOT_SUPPORTED -->
+            <c:if test="${param.e == '8' || param.e == '9' || param.e == '4'}">
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">
