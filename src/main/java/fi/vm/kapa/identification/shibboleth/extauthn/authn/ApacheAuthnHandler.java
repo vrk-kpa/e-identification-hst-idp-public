@@ -21,32 +21,37 @@
  * THE SOFTWARE.
  */
 
-package fi.vm.kapa.identification.shibboleth.extauthn.config;
+package fi.vm.kapa.identification.shibboleth.extauthn.authn;
 
-import fi.vm.kapa.identification.shibboleth.extauthn.CertificateUtil;
-import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
+import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
+import fi.vm.kapa.identification.shibboleth.extauthn.util.CertificateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-@Configuration
-public class CertificateUtilConfiguration {
+import javax.servlet.http.HttpServletRequest;
+import java.security.cert.X509Certificate;
 
-    // intermediate certificate path
-    @Value("${ica.dir.path}")
-    private String icaPath;
+import static fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException.ErrorCode.NO_CERT_FOUND;
 
-    // root CA directory path
-    @Value("${ca.dir.path}")
-    private String caPath;
+@Component
+public class ApacheAuthnHandler extends AbstractAuthnHandler {
 
     @Autowired
-    private CrlChecker crlChecker;
-
-    @Bean(name = "certificateUtil")
-    CertificateUtil provideCertificateUtil() {
-        return new CertificateUtil(icaPath, caPath, crlChecker);
+    public ApacheAuthnHandler(@Value("${oc.ca.orgname.set}") String organizationCardCA,
+                              @Value("${hst.ca.orgname.set}") String hstCardCA)
+    {
+        super(organizationCardCA, hstCardCA);
     }
 
+    @Override
+    public X509Certificate getUserCertificate(HttpServletRequest httpRequest) throws CertificateStatusException
+    {
+        X509Certificate certificate = CertificateUtil.getCertificate(httpRequest.getHeader("SSL_CLIENT_CERT"));
+
+        if (certificate == null || !"SUCCESS".equalsIgnoreCase(httpRequest.getHeader("SSL_CLIENT_VERIFY"))) {
+            throw new CertificateStatusException("No valid X.509 certificates found in request", NO_CERT_FOUND);
+        }
+        return certificate;
+    }
 }

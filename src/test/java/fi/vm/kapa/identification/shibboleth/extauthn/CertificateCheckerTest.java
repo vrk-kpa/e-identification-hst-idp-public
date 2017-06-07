@@ -23,8 +23,10 @@
 package fi.vm.kapa.identification.shibboleth.extauthn;
 
 import com.google.common.cache.LoadingCache;
+import fi.vm.kapa.identification.shibboleth.extauthn.authn.ApacheAuthnHandler;
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
+import fi.vm.kapa.identification.shibboleth.extauthn.util.CertificateUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,14 +48,16 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CertificateUtilTest {
+public class CertificateCheckerTest {
 
     private String icaPath;
     private String caPath;
 
     private String assertFailMessage;
 
-    private CertificateUtil certificateUtil;
+    private CertificateChecker certificateChecker;
+
+    private ApacheAuthnHandler apacheAuthnHandler;
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -63,19 +67,26 @@ public class CertificateUtilTest {
         this.icaPath = "src/test/resources/certs";
         this.caPath = "src/test/resources/certs";
         this.assertFailMessage = "No exception was thrown.";
-        this.certificateUtil = new CertificateUtil(icaPath, caPath, mock(CrlChecker.class));
-
+        this.certificateChecker = new CertificateChecker(icaPath, caPath, mock(CrlChecker.class));
+        this.apacheAuthnHandler = new ApacheAuthnHandler("","");
     }
 
     @Test
-    public void testCertUtilHeaderToolOK() throws Exception {
+    public void testCertUtilHeaderToolOKApache() throws Exception {
         String certString = new String(Files.readAllBytes(Paths.get("src/test/resources/headertest/testinen.header")));
-        X509Certificate cert = CertificateUtil.getCertFromHeader(certString);
+        X509Certificate cert = CertificateUtil.getCertificate(certString);
         Assert.assertTrue(cert.getSubjectDN().getName().contains("Testinen"));
     }
 
     @Test
-    public void testCRLUtilCRLCheckOK() throws Exception {
+    public void testCertUtilHeaderToolOKSCS() throws Exception {
+        String certString = new String(Files.readAllBytes(Paths.get("src/test/resources/headertest/testinen.scs")));
+        X509Certificate cert = CertificateUtil.getCertificate(certString);
+        Assert.assertTrue(cert.getSubjectDN().getName().contains("Testinen"));
+    }
+
+    @Test
+    public void testCRLCheckerCRLCheckOK() throws Exception {
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("certs/test-cert.crt").getFile());
         InputStream in = new FileInputStream(file);
@@ -84,15 +95,15 @@ public class CertificateUtilTest {
 
         CrlChecker crlChecker = provideCrlChecker();
 
-        CertificateUtil certUtil = new CertificateUtil(this.icaPath, this.caPath, crlChecker);
+        CertificateChecker certChecker = new CertificateChecker(this.icaPath, this.caPath, crlChecker);
 
-        X509Certificate validCertificate = certUtil.checkCertificateStatus(certificate);
+        X509Certificate validCertificate = certChecker.checkCertificateStatus(certificate);
 
         Assert.assertNotNull(validCertificate);
     }
 
     @Test
-    public void testCRLUtilCRLCheckCertificateRevoked() throws Exception {
+    public void testCRLCheckerCRLCheckCertificateRevoked() throws Exception {
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("certs/test-cert-revoked.crt").getFile());
         InputStream in = new FileInputStream(file);
@@ -100,10 +111,10 @@ public class CertificateUtilTest {
         X509Certificate certificate = (X509Certificate)cf.generateCertificate(in);
 
         CrlChecker crlChecker = provideCrlChecker();
-        CertificateUtil certUtil = new CertificateUtil(this.icaPath, this.caPath, crlChecker);
+        CertificateChecker certChecker = new CertificateChecker(this.icaPath, this.caPath, crlChecker);
 
         try {
-            certUtil.checkCertificateStatus(certificate);
+            certChecker.checkCertificateStatus(certificate);
             Assert.fail(assertFailMessage);
         } catch (CertificateStatusException ste ) {
             Assert.assertEquals(CertificateStatusException.ErrorCode.CERT_REVOKED, ste.getErrorCode());
@@ -118,7 +129,8 @@ public class CertificateUtilTest {
         HttpServletRequest request = getValidRequestMock(testCert);
 
         try {
-            certificateUtil.getValidCertificate(request);
+            X509Certificate x509cert = apacheAuthnHandler.getUserCertificate(request);
+            certificateChecker.checkCertificateStatus(x509cert);
             Assert.fail(assertFailMessage);
         } catch (CertificateStatusException ste ) {
             Assert.assertEquals(CertificateStatusException.ErrorCode.CERT_EXPIRED, ste.getErrorCode());
@@ -126,7 +138,7 @@ public class CertificateUtilTest {
     }
 
     @Test
-    public void testCertUtilVerifyFailReturnsNotFoundException() throws Exception {
+    public void testApacheVerifyFailReturnsNotFoundException() throws Exception {
 
         String testCert = new String(Files.readAllBytes(Paths.get("src/test/resources/headertest/testinen.header")));
 
@@ -134,7 +146,7 @@ public class CertificateUtilTest {
         when(request.getHeader("SSL_CLIENT_VERIFY")).thenReturn("");
 
         try {
-            certificateUtil.getValidCertificate(request);
+            apacheAuthnHandler.getUserCertificate(request);
             Assert.fail(assertFailMessage);
         } catch (CertificateStatusException ste ) {
             Assert.assertEquals(CertificateStatusException.ErrorCode.NO_CERT_FOUND, ste.getErrorCode());
@@ -142,7 +154,7 @@ public class CertificateUtilTest {
     }
 
     @Test
-    public void testCertUtilUnknownCAReturnsUnknownCAException() throws Exception {
+    public void testCertCheckerUnknownCAReturnsUnknownCAException() throws Exception {
 
 
         String validCert = new String(Files.readAllBytes(Paths.get("src/test/resources/certs/test-cert.crt")));
@@ -152,10 +164,11 @@ public class CertificateUtilTest {
         // temporary empty folder that represents empty CA-folder
         File folder = tempFolder.newFolder();
 
-        CertificateUtil certUtil = new CertificateUtil(icaPath, folder.getCanonicalPath(), mock(CrlChecker.class));
+        CertificateChecker certChecker = new CertificateChecker(icaPath, folder.getCanonicalPath(), mock(CrlChecker.class));
 
         try {
-            certUtil.getValidCertificate(request);
+            X509Certificate x509cert = apacheAuthnHandler.getUserCertificate(request);
+            certChecker.checkCertificateStatus(x509cert);
             Assert.fail(assertFailMessage);
         } catch (CertificateStatusException ste ) {
             Assert.assertEquals(CertificateStatusException.ErrorCode.UNKNOWN_CA, ste.getErrorCode());
@@ -163,7 +176,7 @@ public class CertificateUtilTest {
     }
 
     @Test
-    public void testCertUtilUnknownICAReturnsUnknownICAException() throws Exception {
+    public void testCertCheckerUnknownICAReturnsUnknownICAException() throws Exception {
         String validCert = new String(Files.readAllBytes(Paths.get("src/test/resources/certs/test-cert.crt")));
 
         HttpServletRequest request = getValidRequestMock(validCert);
@@ -171,10 +184,11 @@ public class CertificateUtilTest {
         // temporary empty folder that represents empty iCA-folder
         File folder = tempFolder.newFolder();
 
-        CertificateUtil certUtil = new CertificateUtil(folder.getCanonicalPath(), caPath, mock(CrlChecker.class));
+        CertificateChecker certChecker = new CertificateChecker(folder.getCanonicalPath(), caPath, mock(CrlChecker.class));
 
         try {
-            certUtil.getValidCertificate(request);
+            X509Certificate x509cert = apacheAuthnHandler.getUserCertificate(request);
+            certChecker.checkCertificateStatus(x509cert);
             Assert.fail(assertFailMessage);
         } catch (CertificateStatusException ste ) {
             Assert.assertEquals(CertificateStatusException.ErrorCode.UNKNOWN_ICA, ste.getErrorCode());

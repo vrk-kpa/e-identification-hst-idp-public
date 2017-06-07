@@ -20,41 +20,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package fi.vm.kapa.identification.shibboleth.extauthn.exception;
 
-public class CertificateStatusException extends Exception {
-
-    public enum ErrorCode {
-        NO_CERT_FOUND("2"),
-        CERT_REVOKED("3"),
-        CERT_TYPE_NOT_SUPPORTED("4"),
-        VARTTI_SERVICE_ERROR("5"),
-        INTERNAL_ERROR("6"),
-        CERT_EXPIRED("7"),
-        UNKNOWN_CA("8"),
-        UNKNOWN_ICA("9"),
-        CRL_MISSING("11"),
-        CRL_SIGNATURE_FAILED("12"),
-        SCS_SIGNATURE_FAILED("13");
-
-        private String code;
-
-        ErrorCode(String code) {
-            this.code = code;
-        }
-
-        public String getCode() { return code; }
+public class SCSException extends Exception {
+    public SCSException(String reason, Throwable t) {
+        super(reason, t);
     }
-
-    private final ErrorCode errorCode;
-
-    public CertificateStatusException(String reason, ErrorCode code) {
+    public SCSException(String reason) {
         super(reason);
-        errorCode = code;
-    }
-
-    public ErrorCode getErrorCode() {
-        return errorCode;
     }
 }

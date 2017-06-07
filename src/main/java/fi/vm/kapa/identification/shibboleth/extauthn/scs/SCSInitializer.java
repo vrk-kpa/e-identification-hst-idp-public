@@ -21,40 +21,43 @@
  * THE SOFTWARE.
  */
 
-package fi.vm.kapa.identification.shibboleth.extauthn.exception;
+package fi.vm.kapa.identification.shibboleth.extauthn.scs;
 
-public class CertificateStatusException extends Exception {
+import fi.vm.kapa.identification.shibboleth.extauthn.exception.SCSException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-    public enum ErrorCode {
-        NO_CERT_FOUND("2"),
-        CERT_REVOKED("3"),
-        CERT_TYPE_NOT_SUPPORTED("4"),
-        VARTTI_SERVICE_ERROR("5"),
-        INTERNAL_ERROR("6"),
-        CERT_EXPIRED("7"),
-        UNKNOWN_CA("8"),
-        UNKNOWN_ICA("9"),
-        CRL_MISSING("11"),
-        CRL_SIGNATURE_FAILED("12"),
-        SCS_SIGNATURE_FAILED("13");
+import java.security.SecureRandom;
+import java.util.Base64;
 
-        private String code;
+@Component
+public class SCSInitializer {
 
-        ErrorCode(String code) {
-            this.code = code;
+    private static final Logger logger = LoggerFactory.getLogger(SCSInitializerServlet.class);
+    private static boolean scsEnabled;
+
+    @Value("${scs.enabled}")
+    public void setScsEnabled(boolean value)
+    {
+        scsEnabled = value;
+    }
+
+    public static String generateData(int len) throws SCSException
+    {
+        // SCS can be disabled in configuration
+        if (!scsEnabled) {
+            throw new SCSException("SCS disabled");
         }
 
-        public String getCode() { return code; }
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[len];
+        random.nextBytes(bytes);
+        String data = Base64.getEncoder().encodeToString(bytes);
+
+        logger.debug("Generated random data for SCS: "+data);
+        return data;
     }
 
-    private final ErrorCode errorCode;
-
-    public CertificateStatusException(String reason, ErrorCode code) {
-        super(reason);
-        errorCode = code;
-    }
-
-    public ErrorCode getErrorCode() {
-        return errorCode;
-    }
 }

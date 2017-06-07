@@ -21,40 +21,27 @@
  * THE SOFTWARE.
  */
 
-package fi.vm.kapa.identification.shibboleth.extauthn.exception;
+package fi.vm.kapa.identification.shibboleth.extauthn.scs;
 
-public class CertificateStatusException extends Exception {
+public class SCSInitResponse
+{
+    private String data;
+    private String[] issuers;
 
-    public enum ErrorCode {
-        NO_CERT_FOUND("2"),
-        CERT_REVOKED("3"),
-        CERT_TYPE_NOT_SUPPORTED("4"),
-        VARTTI_SERVICE_ERROR("5"),
-        INTERNAL_ERROR("6"),
-        CERT_EXPIRED("7"),
-        UNKNOWN_CA("8"),
-        UNKNOWN_ICA("9"),
-        CRL_MISSING("11"),
-        CRL_SIGNATURE_FAILED("12"),
-        SCS_SIGNATURE_FAILED("13");
-
-        private String code;
-
-        ErrorCode(String code) {
-            this.code = code;
-        }
-
-        public String getCode() { return code; }
+    public String getData() {
+        return data;
     }
 
-    private final ErrorCode errorCode;
-
-    public CertificateStatusException(String reason, ErrorCode code) {
-        super(reason);
-        errorCode = code;
+    public void setData(String data) {
+        this.data = data;
     }
 
-    public ErrorCode getErrorCode() {
-        return errorCode;
+    public String[] getIssuers() {
+        return issuers;
     }
+
+    public void setIssuers(String[] issuers) {
+        this.issuers = issuers;
+    }
+
 }

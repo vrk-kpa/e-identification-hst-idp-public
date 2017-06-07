@@ -29,11 +29,9 @@ import java.security.cert.*;
 import java.util.HashMap;
 import java.util.Map;
 import javax.security.auth.x500.X500Principal;
-import javax.servlet.http.HttpServletRequest;
 
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -41,39 +39,25 @@ import org.springframework.stereotype.Component;
 import static fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException.ErrorCode.*;
 
 @Component
-public class CertificateUtil {
+public class CertificateChecker {
 
-    private static final Logger logger = LoggerFactory.getLogger(CertificateUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(CertificateChecker.class);
 
     private final Map<X500Principal, X509Certificate> caMap = new HashMap<>();
     private final Map<X500Principal, X509Certificate> icaMap = new HashMap<>();
 
     private final CrlChecker crlChecker;
 
-    public CertificateUtil(String icaPath,
-                           String caPath,
-                           CrlChecker crlChecker) {
+    public CertificateChecker(String icaPath,
+                              String caPath,
+                              CrlChecker crlChecker) {
         // initialize CA/iCA mappings
         initializeCertificateMap(caMap, caPath);
         initializeCertificateMap(icaMap, icaPath);
         this.crlChecker = crlChecker;
     }
 
-    X509Certificate getValidCertificate(HttpServletRequest httpRequest) throws CertificateStatusException {
-
-        String header = httpRequest.getHeader("SSL_CLIENT_CERT");
-
-        X509Certificate newCert = getCertFromHeader(header);
-
-        if ( newCert == null || !"SUCCESS".equalsIgnoreCase(httpRequest.getHeader("SSL_CLIENT_VERIFY"))) {
-            logger.warn("No valid X.509 certificates found in request");
-            throw new CertificateStatusException("No valid X.509 certificates found in request", NO_CERT_FOUND);
-        }
-
-        return checkCertificateStatus(newCert);
-    }
-
-    X509Certificate checkCertificateStatus(X509Certificate certificate) throws CertificateStatusException {
+    public X509Certificate checkCertificateStatus(X509Certificate certificate) throws CertificateStatusException {
 
         // 1) check if certificate is expired
         try {
@@ -118,23 +102,6 @@ public class CertificateUtil {
         return iCACert;
     }
 
-    static X509Certificate getCertFromHeader(String certHeader) {
-        X509Certificate newCert = null;
-        try {
-            //Add \r after cert header field, Cert API needs this
-            String certHeaderWithCR = certHeader.replaceFirst("-----BEGIN CERTIFICATE-----", "-----BEGIN CERTIFICATE-----\r");
-            if (StringUtils.isNotBlank(certHeaderWithCR)) {
-                InputStream in = new ByteArrayInputStream(certHeaderWithCR.getBytes());
-                CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                newCert = (X509Certificate)cf.generateCertificate(in);
-            }
-        } catch (final CertificateException e) {
-            logger.warn("Getting client certificate from request header failed", e);
-            return null;
-        }
-        return newCert;
-    }
-
     private void initializeCertificateMap(final Map<X500Principal, X509Certificate> certMap, String certDirPath) {
         try {
             Files.walk(Paths.get(certDirPath)).filter(Files::isRegularFile).forEach(filePath -> {
@@ -151,4 +118,5 @@ public class CertificateUtil {
             logger.error("Error reading ca/ica certificates from path " + certDirPath, ioe);
         }
     }
+
 }

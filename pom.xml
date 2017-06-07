@@ -46,6 +46,7 @@
         <shibboleth.version>3.2.1</shibboleth.version>
         <!-- KAPA internal versions -->
         <kapa.shared.version>1.0-SNAPSHOT</kapa.shared.version>
+        <jackson.version>2.8.7</jackson.version>
     </properties>
 
     <repositories>
@@ -262,6 +263,13 @@
             <artifactId>mockito-all</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Jackson deps -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
 
     </dependencies>

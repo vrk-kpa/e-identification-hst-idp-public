@@ -21,20 +21,17 @@
  * THE SOFTWARE.
  */
 
-package fi.vm.kapa.identification.shibboleth.extauthn;
+package fi.vm.kapa.identification.shibboleth.extauthn.authn;
 
+import fi.vm.kapa.identification.shibboleth.extauthn.CertificateChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.context.HSTCardContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.context.OrganizationCardContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.VarttiServiceException;
 import fi.vm.kapa.identification.shibboleth.extauthn.vartti.VarttiClient;
-import static fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException.ErrorCode.*;
-import net.shibboleth.idp.authn.AuthnEventIds;
 import net.shibboleth.idp.authn.ExternalAuthentication;
 import net.shibboleth.idp.authn.ExternalAuthenticationException;
-
 import net.shibboleth.idp.authn.context.AuthenticationContext;
-import org.apache.commons.lang.StringUtils;
 import org.cryptacular.x509.dn.NameReader;
 import org.cryptacular.x509.dn.RDNSequence;
 import org.cryptacular.x509.dn.StandardAttributeType;
@@ -45,17 +42,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -63,90 +53,55 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 
-@WebServlet(name = "ShibbolethExtAuthnHandler", urlPatterns = {"/authn/External/*"})
-public class ShibbolethExtAuthnHandler extends HttpServlet {
-     
-    private static final Logger log = LoggerFactory.getLogger(ShibbolethExtAuthnHandler.class);
+import static fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException.ErrorCode.*;
+
+public abstract class AbstractAuthnHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(AbstractAuthnHandler.class);
 
     @Autowired
-    private transient VarttiClient varttiClient;
+    private VarttiClient varttiClient;
 
     @Autowired
-    private transient CertificateUtil certificateUtil;
+    private CertificateChecker certificateChecker;
 
     @Value("${hst.prompt.url}")
     private String hstPromptUrl;
-
-    @Value("${oc.ca.orgname.set}")
-    private String allowedCNOfOrganizationCardCA;
-
-    @Value("${hst.ca.orgname.set}")
-    private String allowedCNOfHstCardCA;
 
     private Set<String> organizationCardCACommonNames;
 
     private Set<String> hstCardCACommonNames;
 
-    @Override
-    public void init(ServletConfig config) throws ServletException {
-        WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(config.getServletContext());
-        final AutowireCapableBeanFactory beanFactory = springContext.getAutowireCapableBeanFactory();
-        beanFactory.autowireBean(this);
-        organizationCardCACommonNames = new HashSet<>(Arrays.asList(allowedCNOfOrganizationCardCA.split(";")));
-        hstCardCACommonNames = new HashSet<>(Arrays.asList(allowedCNOfHstCardCA.split(";")));
+    protected AbstractAuthnHandler(String organizationCardCA, String hstCardCA)
+    {
+        organizationCardCACommonNames = new HashSet<>(Arrays.asList(organizationCardCA.split(";")));
+        hstCardCACommonNames = new HashSet<>(Arrays.asList(hstCardCA.split(";")));
     }
 
-    @Override
-    public void service(final HttpServletRequest httpRequest, final HttpServletResponse httpResponse)
+    abstract X509Certificate getUserCertificate(HttpServletRequest httpRequest) throws CertificateStatusException;
+
+    public void initialize(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws ServletException, IOException {
         try {
-            //Check error parameter
-            if (StringUtils.isBlank(httpRequest.getParameter("e"))) {
-                final String key = ExternalAuthentication.startExternalAuthentication(httpRequest);
+            final String key = ExternalAuthentication.startExternalAuthentication(httpRequest);
 
-                // Debug logs
-                Enumeration<String> headers = httpRequest.getHeaderNames();
-                while (headers.hasMoreElements()) {
-                    String header = headers.nextElement();
-                    log.debug("--" + header + " <--> " + httpRequest.getHeader(header));
-                }
+            debugHttpRequest(httpRequest);
 
-                try {
-                    final X509Certificate cert = certificateUtil.getValidCertificate(httpRequest);
+            try {
+                final X509Certificate cert = certificateChecker.checkCertificateStatus(getUserCertificate(httpRequest));
 
-                    log.debug("End-entity X.509 certificate found with subject '{}', issued by '{}'",
-                            cert.getSubjectDN().getName(), cert.getIssuerDN().getName());
+                log.debug("End-entity X.509 certificate found with subject '{}', issued by '{}'",
+                        cert.getSubjectDN().getName(), cert.getIssuerDN().getName());
 
-                    final RDNSequence dn = new NameReader(cert).readSubject();
-                    final String subjectSerialNumber = dn.getValue(StandardAttributeType.SerialNumber);
+                final RDNSequence dn = new NameReader(cert).readSubject();
+                final String subjectSerialNumber = dn.getValue(StandardAttributeType.SerialNumber);
 
-                    // set sub context and finish external authentication
-                    setIDCardSubContext(httpRequest, key, cert, subjectSerialNumber);
-                    httpRequest.setAttribute(ExternalAuthentication.PRINCIPAL_NAME_KEY, subjectSerialNumber);
-                    ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
-
-                } catch ( CertificateStatusException ste ) {
-                    httpResponse.sendRedirect(createErrorURL(key, ste.getErrorCode()));
-                }
-            } else {
-                //Return to discovery page call from error page
-                final String error = httpRequest.getParameter("e");
-                final String key = httpRequest.getParameter("conversation");
-                if (error.equals(NO_CERT_FOUND.getCode()) && StringUtils.isNotBlank(key)) {
-                    httpRequest.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY,
-                            AuthnEventIds.NO_CREDENTIALS);
-                    ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
-                } else if ( error.equals(CERT_REVOKED.getCode()) && StringUtils.isNotBlank(key)) {
-                    httpRequest.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY,
-                            AuthnEventIds.INVALID_CREDENTIALS);
-                    ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
-                } else {
-                    //Unknown error
-                    httpRequest.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY,
-                            AuthnEventIds.AUTHN_EXCEPTION);
-                    ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
-                }
-
+                // set sub context and finish external authentication
+                setIDCardSubContext(httpRequest, key, cert, subjectSerialNumber);
+                httpRequest.setAttribute(ExternalAuthentication.PRINCIPAL_NAME_KEY, subjectSerialNumber);
+                ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
+            } catch ( CertificateStatusException ste ) {
+                httpResponse.sendRedirect(createErrorURL(key, ste.getErrorCode()));
             }
         } catch (final ExternalAuthenticationException e) {
             log.error("Error processing external authentication request");
@@ -201,18 +156,25 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
         String defaultLang = "fi";
         if (extensions != null) {
             // look for vetuma-style language parameter for backward compatibility
-            String lang = extensions.getOrderedChildren()
-                    .stream()
-                    .filter(extension -> "kapa".equals(extension.getElementQName().getLocalPart()))
-                    .findFirst()
-                    .flatMap(kapaNode -> kapaNode.getOrderedChildren()
-                            .stream()
-                            .filter(lgNode -> "lang".equals(lgNode.getElementQName().getLocalPart()))
-                            .findFirst())
-                    .map(langNode -> langNode.getDOM().getFirstChild().getNodeValue())
-                    .orElse(defaultLang);
-            log.debug("Resolved language parameter from authentication request - " + lang);
-            return lang;
+            try {
+                String lang = extensions.getOrderedChildren()
+                        .stream()
+                        .filter(extension -> "kapa".equals(extension.getElementQName().getLocalPart()))
+                        .findFirst()
+                        .flatMap(kapaNode -> kapaNode.getOrderedChildren()
+                                .stream()
+                                .filter(lgNode -> "lang".equals(lgNode.getElementQName().getLocalPart()))
+                                .findFirst())
+                        .map(langNode -> langNode.getDOM().getFirstChild().getNodeValue())
+                        .orElse(defaultLang);
+                log.debug("Resolved language parameter from authentication request - " + lang);
+                return lang;
+            }
+            catch (NullPointerException e)
+            {
+                log.debug("Getting language parameter from authentication request failed, using default language - " + defaultLang);
+                return defaultLang;
+            }
         }
         else {
             log.debug("Could not find language parameter in authentication request, using default language - " + defaultLang);
@@ -226,6 +188,21 @@ public class ShibbolethExtAuthnHandler extends HttpServlet {
 
     private boolean isOrganizationCardType(String issuerCN) {
         return organizationCardCACommonNames.contains(issuerCN);
+    }
+
+    private static void debugHttpRequest(HttpServletRequest httpRequest)
+    {
+        // Debug logs
+        Enumeration<String> headers = httpRequest.getHeaderNames();
+        while (headers.hasMoreElements()) {
+            String header = headers.nextElement();
+            log.debug("--" + header + " <--> " + httpRequest.getHeader(header));
+        }
+        Enumeration<String> params = httpRequest.getParameterNames();
+        while (params.hasMoreElements()) {
+            String param = params.nextElement();
+            log.debug("--" + param + " <--> " + httpRequest.getParameter(param));
+        }
     }
 
 }

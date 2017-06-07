@@ -1,12 +1,12 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ page import="net.shibboleth.idp.authn.ExternalAuthentication" %>
 <%@ page import="org.opensaml.profile.context.ProfileRequestContext" %>
-<%@ page import="fi.vm.kapa.identification.shibboleth.extauthn.ShibbolethExtAuthnHandler" %>
+<%@ page import="fi.vm.kapa.identification.shibboleth.extauthn.authn.AbstractAuthnHandler" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 
 <%
     final ProfileRequestContext prc = ExternalAuthentication.getProfileRequestContext(request.getParameter(ExternalAuthentication.CONVERSATION_KEY), request);
-    final String samlRequestLang = ShibbolethExtAuthnHandler.resolveLanguage(prc);
+    final String samlRequestLang = AbstractAuthnHandler.resolveLanguage(prc);
 %>
 
 <!doctype html>
@@ -49,10 +49,73 @@
     </script>
     <!--[if lt IE 9]>
     <script src="/resources/js/vendor/respond.js"></script>
+    <script src="/resources/js/scs/jquery.xdomainrequest.min.js"></script>
     <![endif]-->
     <!--[if IE 8]>
     <link href="/resources/stylesheets/ie8.css" rel="stylesheet" type="text/css" />
     <![endif]-->
+    <script src="/resources/js/scs/scs.js"></script>
+    <script>
+      function scs_init() {
+        $.ajax({
+          dataType: "json",
+          url: "<%= request.getContextPath() %>/scs/initialize",
+          success: function(json) {
+            scs_auth(json.data,json.issuers);
+          },
+          error: function() {
+            scs_fallback(); // fallback to legacy method
+          }
+        });
+      };
+
+      function scs_auth(data,issuers) {
+        var request = {
+          selector: {},
+          content: data,
+          contentType: "data",
+          hashAlgorithm: "SHA256",
+          signatureType: "signature",
+          version: "1.0"
+        };
+        request.selector.keyusages = [ "digitalsignature" ];
+        if (Array.isArray(issuers)) {
+          request.selector.issuers = issuers;
+        }
+        SCS.sign(scs_handle,request);
+      };
+
+      function scs_handle(response) {
+        if (typeof response === 'object' && response.status === "ok")
+        {
+          // "status": "ok", "reasonCode": "200", "reasonText": "Signature generated"
+          $("#scs_signature").val(response.signature);
+          $("#scs_cert").val(response.chain[0]); // SCS specification: user cert always at index 0
+          $("#login-form-scs").submit();
+        }
+        else if (typeof response === 'object' && (response.reasonCode === "400" || response.reasonCode === "401"))
+        {
+          // "status": "failed", "reasonCode": "400", "reasonText": "Bad request: No acceptable user certificates available."
+          // "status": "failed", "reasonCode": "400", "reasonText": "Bad request: Please insert smart card"
+          // "status": "failed", "reasonCode": "401", "reasonText": "Unauthorized: Operation cancelled"
+          $("#tunnistaudu").prop("disabled", false); // re-enable button
+        }
+        else // SCS internal error / failure?
+        {
+          scs_fallback(); // fallback to legacy method
+        }
+      };
+
+      function scs_fallback() // Init legacy method (called if SCS fails)
+      {
+        $.get("/certcheck", function() {
+          $("#login-form").submit();
+        }).fail(function() {
+          window.location.replace(window.location.href + "&e=1");
+        });
+      }
+    </script>
+
 </head>
 <body id="identification-service" class="txlive">
 <a href="#main" class="visuallyhidden focusable">Siirry suoraan sisältöön</a>
@@ -115,15 +178,18 @@
                                     <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
                                            value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
                                 </form>
+                                <form id="login-form-scs" action="<%= request.getContextPath() %>/authn/SCS" method="post">
+                                    <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
+                                           value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
+                                    <input type="hidden" id="scs_signature" name="scs_signature"/>
+                                    <input type="hidden" id="scs_cert" name="scs_cert"/>
+                                </form>
                                 <button id="tunnistaudu" data-i18n="hst__tunnistaudu">Tunnistaudu</button>
                                 <script>
                                     $(document).ready(function(){
                                         $("#tunnistaudu").click(function(){
-                                            $.get("/certcheck", function() {
-                                                $("#login-form").submit();
-                                            }).fail(function() {
-                                                window.location.replace(window.location.href + "&e=1");
-                                            });
+                                          $(this).prop("disabled", true);
+                                          scs_init();
                                         });
                                     });
                                 </script>
@@ -147,102 +213,72 @@
                     </div>
                 </div>
             </c:if>
-            
-            <!-- Fails to read certificate card | VARTTI_SERVICE_ERROR | INTERNAL_ERROR -->
-            <c:if test="${param.e == '1' || param.e == '5' || param.e == '6'}">
+
+            <c:if test="${not empty param.e}">
+                <c:set var="error" scope="session" value="${param.e}" />
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">
+
                             <h2 data-i18n="hst__virhe">Virhe</h2>
                             <p data-i18n="hst__epaonnistui">Tunnistautuminen varmennekortilla epäonnistui.</p>
-                            <ul>
-                                <li data-i18n="hst__tarkista">Tarkista, että tietokoneeseen on asennettu kortinlukijaohjelmisto.</li>
-                                <li data-i18n="hst__oikein_pain">Tarkista, että kortti on oikein päin lukijalaitteessa.</li>
-                                <li data-i18n="hst__laitteen_toiminta">Tarkista lukijalaitteen toiminta.</li>
-                                <li data-i18n="hst__vanhentunut">Tarkista, että kortti ei ole vanhentunut.</li>
-                            </ul>
-                            <p>
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
-                            </p>
-                            <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
-                        </div>
-                    </div>
-                </div>
-            </c:if>
-            
-            <!-- NO_CERT_FOUND -->            
-            <c:if test="${param.e == '2'}">
-                <div class="row">
-                    <div class="col-xs-12 col-md-8">
-                        <div class="error-box">
-                            <h2 data-i18n="hst__virhe">Virhe</h2>
-                            <p data-i18n="hst__epaonnistui">Tunnistautuminen varmennekortilla epäonnistui.</p>
-                            <ul>
-                                <li data-i18n="hst__tarkista">Tarkista, että tietokoneeseen on asennettu kortinlukijaohjelmisto.</li>
-                                <li data-i18n="hst__oikein_pain">Tarkista, että kortti on oikein päin lukijalaitteessa.</li>
-                                <li data-i18n="hst__laitteen_toiminta">Tarkista lukijalaitteen toiminta.</li>
-                                <li data-i18n="hst__vanhentunut">Tarkista, että kortti ei ole vanhentunut.</li>
-                            </ul>
-                            <p>
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
-                            </p>
-                            <form id="login-error-2" action="<%= request.getContextPath() %>/authn/External" method="post">
-                                <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
-                                       value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
-                                <input type="hidden" name="e"
-                                       value="2">
-                            </form>
-                            <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
-                        </div>
-                    </div>
-                </div>
-            </c:if>
-            
-            <!-- CERT_REVOKED_OR_NOT_VALID || CERT_EXPIRED || CRL_MISSING || CRL_SIGNATURE_FAILED -->
-            <c:if test="${param.e == '3' || param.e == '7' || param.e == '11' || param.e == '12'}">
-                <div class="row">
-                    <div class="col-xs-12 col-md-8">
-                        <div class="error-box">
-                            <h2 data-i18n="hst__virhe">Virhe</h2>
-                            <p data-i18n="hst__epaonnistui">Tunnistautuminen varmennekortilla epäonnistui.</p>
-                            <p data-i18n="hst__sulkulistalla">Varmennekortti on sulkulistalla tai varmenne ei ole voimassa.</p>
-                            <p>
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
-                            </p>
-                            <form id="login-error-3" action="<%= request.getContextPath() %>/authn/External" method="post">
-                                <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
-                                       value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
-                                <input type="hidden" name="e"
-                                       value="3">
-                            </form>
-                            <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
-                        </div>
-                    </div>
-                </div>
-            </c:if>
-            
-            <!-- UNKNOWN_CA || UNKNOWN_ICA || CERT_TYPE_NOT_SUPPORTED -->
-            <c:if test="${param.e == '8' || param.e == '9' || param.e == '4'}">
-                <div class="row">
-                    <div class="col-xs-12 col-md-8">
-                        <div class="error-box">
-                            <h2 data-i18n="hst__virhe">Virhe</h2>
-                            <p data-i18n="hst__epaonnistui">Tunnistautuminen varmennekortilla epäonnistui.</p>
-                            <p data-i18n="hst__tarkista_tyyppi">Tarkista, että käytössäsi on kansalaisvarmennekortti.</p>
-                            <p>
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
-                            </p>
-                            <form id="login-error-2" action="<%= request.getContextPath() %>/authn/External" method="post">
-                                <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
-                                       value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
-                                <input type="hidden" name="e"
-                                       value="2">
-                            </form>
-                            <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
+                            <c:choose>
+                                <c:when test="${error == '5' || error == '6' || error == '10' || error == '11' || error == '12' || error == '13' }">
+                                    <%-- VARTTI_SERVICE_ERROR | INTERNAL_ERROR | CRL_OUTDATED | CRL_MISSING | CRL_SIGNATURE_FAILED | SCS_SIGNATURE_FAILED --%>
+                                    <ul>
+                                        <li data-i18n="hst__sisainen_virhe">Tunnistautumisessa tapahtui virhe ja tunnistautuminen keskeytyi. Tietosi eivät kuitenkaan ole vaarantuneet, eivätkä ne voi päätyä vahingossa muiden tietoon.</li>
+                                        <li data-i18n="hst__palautepyynto">Mikäli ongelma toistuu, lähetä meille siitä palautetta, jotta voimme selvittää ja korjata mahdollisesti toistuvan vian.</li>
+                                        <li>
+                                            <a data-i18n="hst__palautelinkki" href="/sivut/info/virhepalaute/" target="_blank">Lähetä palautetta lomakkeella.</a>
+                                            <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span>
+                                        </li>
+                                    </ul>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:choose>
+                                        <c:when test="${error == '3'}">
+                                            <%-- CERT_REVOKED --%>
+                                            <p data-i18n="hst__sulkulistalla">Varmennekortti on sulkulistalla</p>
+                                        </c:when>
+                                        <c:when test="${error == '7'}">
+                                            <%-- CERT_EXPIRED --%>
+                                            <p data-i18n="hst__on_vanhentunut">Varmennekortti on vanhentunut.</p>
+                                        </c:when>
+                                        <c:when test="${error == '4' || error == '8' || error == '9'}">
+                                            <%-- CERT_TYPE_NOT_SUPPORTED | UNKNOWN_CA | UNKNOWN_ICA --%>
+                                            <p data-i18n="hst__tarkista_tyyppi">Tarkista, että käytössäsi on kansalaisvarmennekortti.</p>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <%-- Fails to read certificate card | NO_CERT_FOUND | Any other error case --%>
+                                            <ul>
+                                                <li data-i18n="hst__tarkista">Tarkista, että tietokoneeseen on asennettu kortinlukijaohjelmisto.</li>
+                                                <li data-i18n="hst__oikein_pain">Tarkista, että kortti on oikein päin lukijalaitteessa.</li>
+                                                <li data-i18n="hst__laitteen_toiminta">Tarkista lukijalaitteen toiminta.</li>
+                                                <li data-i18n="hst__vanhentunut">Tarkista, että kortti ei ole vanhentunut.</li>
+                                            </ul>
+                                        </c:otherwise>
+                                    </c:choose>
+                                    <p>
+                                        <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
+                                        <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
+                                    </p>
+                                </c:otherwise>
+                            </c:choose>
+
+                            <c:choose>
+                                <c:when test="${error == '1'}">
+                                    <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
+                                </c:when>
+                                <c:otherwise>
+                                    <form id="login-error" action="<%= request.getContextPath() %>/authn/Error" method="post">
+                                        <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
+                                               value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
+                                        <input type="hidden" name="e"
+                                               value="<c:out value="${error}" />">
+                                    </form>
+                                    <br><a title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:$('#login-error').submit();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                     </div>
                 </div>

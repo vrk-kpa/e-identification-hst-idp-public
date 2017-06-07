@@ -20,42 +20,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package fi.vm.kapa.identification.shibboleth.extauthn.config;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.LoadingCache;
-import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlCacheLoader;
+import fi.vm.kapa.identification.shibboleth.extauthn.CertificateChecker;
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.concurrent.TimeUnit;
-
 @Configuration
-public class CrlCheckerConfiguration {
+public class CertificateCheckerConfiguration {
 
-    @Value("${crl.cache.expiration.time}")
-    private int crlCacheExpiration;
+    // intermediate certificate path
+    @Value("${ica.dir.path}")
+    private String icaPath;
 
-    @Value("${crl.dir.path}")
-    private String crlPath;
+    // root CA directory path
+    @Value("${ca.dir.path}")
+    private String caPath;
 
-    // Conditional value for CRL updatetime verification
-    @Value("${crl.updatetime.validation}")
-    private String crlUpdateTimeValidation;
+    @Autowired
+    private CrlChecker crlChecker;
 
-    @Bean
-    LoadingCache provideCacheImplementation() {
-        return CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(crlCacheExpiration, TimeUnit.MILLISECONDS)
-                .build(new CrlCacheLoader(crlPath, crlUpdateTimeValidation));
-    }
-
-    @Bean(name = "crlChecker")
-    CrlChecker provideCrlChecker() {
-        return new CrlChecker(provideCacheImplementation());
+    @Bean(name = "certificateChecker")
+    CertificateChecker provideCertificateChecker() {
+        return new CertificateChecker(icaPath, caPath, crlChecker);
     }
 
 }
