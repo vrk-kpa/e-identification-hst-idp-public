@@ -48,69 +48,7 @@
     </script>
     <!--[if lt IE 9]>
     <script src="/resources/js/vendor/respond.js"></script>
-    <script src="/resources/js/scs/jquery.xdomainrequest.min.js"></script>
     <![endif]-->
-    <script src="/resources/js/scs/scs.js"></script>
-    <script>
-      function scs_init() {
-        $.ajax({
-          dataType: "json",
-          url: "<%= request.getContextPath() %>/scs/initialize",
-          success: function(json) {
-            scs_auth(json.data,json.issuers);
-          },
-          error: function() {
-            scs_fallback(); // fallback to legacy method
-          }
-        });
-      };
-
-      function scs_auth(data,issuers) {
-        var request = {
-          selector: {},
-          content: data,
-          contentType: "data",
-          hashAlgorithm: "SHA256",
-          signatureType: "signature",
-          version: "1.0"
-        };
-        request.selector.keyusages = [ "digitalsignature" ];
-        if (Array.isArray(issuers)) {
-          request.selector.issuers = issuers;
-        }
-        SCS.sign(scs_handle,request);
-      };
-
-      function scs_handle(response) {
-        if (typeof response === 'object' && response.status === "ok")
-        {
-          // "status": "ok", "reasonCode": "200", "reasonText": "Signature generated"
-          $("#scs_signature").val(response.signature);
-          $("#scs_cert").val(response.chain[0]); // SCS specification: user cert always at index 0
-          $("#login-form-scs").submit();
-        }
-        else if (typeof response === 'object' && (response.reasonCode === "400" || response.reasonCode === "401"))
-        {
-          // "status": "failed", "reasonCode": "400", "reasonText": "Bad request: No acceptable user certificates available."
-          // "status": "failed", "reasonCode": "400", "reasonText": "Bad request: Please insert smart card"
-          // "status": "failed", "reasonCode": "401", "reasonText": "Unauthorized: Operation cancelled"
-          $("#tunnistaudu").prop("disabled", false); // re-enable button
-        }
-        else // SCS internal error / failure?
-        {
-          scs_fallback(); // fallback to legacy method
-        }
-      };
-
-      function scs_fallback() // Init legacy method (called if SCS fails)
-      {
-        $.get("/certcheck", function() {
-          $("#login-form").submit();
-        }).fail(function() {
-          window.location.replace(window.location.href + "&e=1");
-        });
-      }
-    </script>
 
 </head>
 <body id="identification-service" class="txlive">
@@ -118,7 +56,7 @@
 <header id="page-header" role="banner">
     <div id="header-content" class="container">
         <h1 id="suomi.fi-tunnistaminen" class="site-logo">
-            <img data-i18n="[src]header__logo;[alt]header__suomifi-tunnistaminen" title="Suomi.fi-tunnistaminen" />
+            <img data-i18n="[src]header__logo;[alt]header__suomifi-tunnistaminen" title="Suomi.fi-tunnistus" />
             <span data-i18n="header__suomifi-tunnistaminen" class="visuallyhidden" />
         </h1>
     </div>
@@ -142,19 +80,16 @@
                                     <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
                                            value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
                                 </form>
-                                <form id="login-form-scs" action="<%= request.getContextPath() %>/authn/SCS" method="post">
-                                    <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
-                                           value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
-                                    <input type="hidden" id="scs_signature" name="scs_signature"/>
-                                    <input type="hidden" id="scs_cert" name="scs_cert"/>
-                                </form>
                                 <button id="tunnistaudu" data-i18n="hst__tunnistaudu">Tunnistaudu</button>
                                 <p class="hst-help small" data-i18n="hst__ohjelmisto_avautuu">Kortinlukijaohjelmisto avautuu. Varsinainen tunnistus tehdään kortinlukijaohjelmistolla. Anna kortin olla paikallaan lukijassa koko tunnistustapahtuman ajan.</p>
                                 <script>
                                     $(document).ready(function(){
                                         $("#tunnistaudu").click(function(){
-                                          $(this).prop("disabled", true);
-                                          scs_init();
+                                            $.get("/certcheck", function() {
+                                              $("#login-form").submit();
+                                            }).fail(function() {
+                                               window.location.replace(window.location.href + "&e=1");
+                                            });
                                         });
                                     });
                                 </script>
@@ -256,7 +191,7 @@
     <a href="#" class="go-up" data-i18n="footer__takaisin_ylös">Takaisin ylös</a>
     <div id="footer-content" class="container">
         <span class="site-logo">
-            <img data-i18n="[src]header__logo;[alt]header__suomifi-tunnistaminen" alt="Suomi.fi-tunnistaminen">
+            <img data-i18n="[src]header__logo;[alt]header__suomifi-tunnistaminen" alt="Suomi.fi-tunnistus">
         </span>
         <div class="footer-links">
           <ul class="footer-links-info">

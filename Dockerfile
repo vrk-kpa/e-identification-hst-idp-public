@@ -18,7 +18,6 @@ RUN mkdir -p /opt/shibboleth-idp/edit-webapp/WEB-INF/jsp && \
     cp -r /tmp/conf/shibboleth/conf/ /opt/shibboleth-idp/conf && \
     cp /tmp/conf/shibboleth/conf/errors.xml /opt/shibboleth-idp/conf/errors.xml && \
     cp /tmp/conf/shibboleth/webapp/web.xml /opt/shibboleth-idp/edit-webapp/WEB-INF/web.xml && \
-    cp /tmp/conf/shibboleth/views/logout.vm /opt/shibboleth-idp/views/logout.vm && \
     cp /tmp/conf/shibboleth/views/hst-prompt.jsp /opt/shibboleth-idp/edit-webapp/WEB-INF/jsp/hst-prompt.jsp && \
     cp /tmp/conf/shibboleth/idp-rebuild.sh /opt/shibboleth-idp/bin/idp-rebuild.sh && \
     cp /tmp/conf/tomcat/logging.properties /usr/share/tomcat/conf/logging.properties && \
