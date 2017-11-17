@@ -50,7 +50,7 @@ while [ "$1" != "" ]; do
 done
 
 # Pull the base image
-docker pull dev-docker-registry.kapa.ware.fi/e-identification-tomcat-idp-3.2.1-base-image
+docker pull dev-docker-registry.kapa.ware.fi/e-identification-tomcat-idp-3.2.1-base-image:v2
 
 #build
 if [ "$nodeps" = "1" ]; then
