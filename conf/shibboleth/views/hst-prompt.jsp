@@ -104,12 +104,16 @@
                     <div class="col-xs-12 col-md-8">
                         <div class="sign-in-info">
                             <p class="small">
-                                <span data-i18n="hst__tunnistautuminen_mahdollista">Tunnistautuminen on mahdollista poliisin myöntämällä sirullisella henkilökortilla, jossa on Väestörekisterikeskuksen kansalaisvarmenne. Varmennekortin lisäksi tarvitset kortinlukijalaitteen ja -ohjelmiston. Lisätietoja varmennekortista löydät Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__fineid_url;hst__fineid">FINeID -sivustolta</a>.
+                                <span data-i18n="hst__tunnistautuminen_mahdollista">Tunnistautuminen on mahdollista sähköisellä henkilökortilla ja Väestörekisterikeskuksen myöntämällä sosiaali- ja terveydenhuollon ammattikortilla sekä organisaatiokortilla.</span>
                             </p>
                             <p class="small">
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
+                                <span data-i18n="hst__varmennekortin_lisaksi">Varmennekortin lisäksi tarvitset kortinlukijalaitteen ja -ohjelmiston. Kortinlukijaohjelmiston voit ladata maksutta</span>
+                                <a data-i18n="[href]hst__kortinlukijaohjelmisto_url;hst__kortinlukijaohjelmisto">Väestörekisterikeskuksen verkkosivuilta.</a>
+                            </p>
+                            <p class="small">
+                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen</span>
+                                <a data-i18n="[href]hst__testaa_palvelussa_url;hst__testaa_palvelussa">Testaa varmenteesi -palvelussa.</a>
+                                <span data-i18n="hst__voit_testata_2"></span>
                             </p>
                         </div>
                     </div>
@@ -161,7 +165,7 @@
                                     </c:choose>
                                     <p>
                                         <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
-                                        <a data-i18n="[href]hst__testaa_palvelusta_url;hst__testaa_palvelusta">Testaa varmenteesi -palvelusta</a>.
+                                        <a data-i18n="[href]hst__testaa_palvelussa_url;hst__testaa_palvelussa">Testaa varmenteesi -palvelussa</a>
                                     </p>
                                 </c:otherwise>
                             </c:choose>
