@@ -7,6 +7,11 @@
 <%
     final ProfileRequestContext prc = ExternalAuthentication.getProfileRequestContext(request.getParameter(ExternalAuthentication.CONVERSATION_KEY), request);
     final String samlRequestLang = AbstractAuthnHandler.resolveLanguage(prc);
+    String cancel = request.getParameter("cancel");
+    if (cancel != null) {
+        request.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY, "User canceled authentication");
+        ExternalAuthentication.finishExternalAuthentication(request.getParameter(ExternalAuthentication.CONVERSATION_KEY), request, response);
+    }
 %>
 
 <!doctype html>
@@ -22,12 +27,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/resources/stylesheets/style.css">
     <script src="/resources/js/vendor/modernizr-2.8.3.min.js"></script>
-    <script src="/resources/js/vendor/jquery-1.11.2.min.js"></script>
+    <script src="/resources/js/vendor/jquery.min.js"></script>
     <script src="/resources/js/plugins.js"></script>
     <script src="/resources/js/main.js"></script>
     <script src="/resources/js/vendor/js.cookie.js"></script>
     <script src="/resources/js/vendor/i18next.min.js"></script>
-    <script src="/resources/js/vendor/jquery-i18next.js"></script>
+    <script src="/resources/js/vendor/jquery-i18next.min.js"></script>
     <script src="/resources/js/vendor/i18nextXHRBackend.min.js"></script>
     <script src="/resources/js/vendor/domready.js"></script>
     <script src="/resources/js/idp_localisation.js"></script>
@@ -36,6 +41,11 @@
         Cookies.remove('E-Identification-Lang');
         document.cookie="E-Identification-Lang=<%=samlRequestLang%>;path=/;secure";
 
+        window.onpopstate = function(event) {
+            window.location.href += '&cancel=1';
+        };
+        history.pushState(null, null);
+           
         function setLanguage(lang) {
             idpLocalisation.setUserLanguageCookie(lang);
             location.reload();
@@ -65,7 +75,7 @@
     <div class="main hst-idp-page">
         <div class="container">
             <c:if test="${empty param.e}">
-                <h2 data-i18n="hst__tunnistaudu_varmennekortilla">Tunnistaudu varmennekortilla</h2>
+                <h1 data-i18n="hst__tunnistaudu_varmennekortilla">Tunnistaudu varmennekortilla</h1>
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="box hst-identification-info">
@@ -83,8 +93,13 @@
                                 <button id="tunnistaudu" data-i18n="hst__tunnistaudu">Tunnistaudu</button>
                                 <p class="hst-help small" data-i18n="hst__ohjelmisto_avautuu">Kortinlukijaohjelmisto avautuu. Varsinainen tunnistus tehdään kortinlukijaohjelmistolla. Anna kortin olla paikallaan lukijassa koko tunnistustapahtuman ajan.</p>
                                 <script>
-                                    $(document).ready(function(){
+                                    function disableFooter() {
+                                        $(".footer-links").find("a").addClass("disabled-link").removeAttr("href");
+                                        $(".sign-in-info").find("a").addClass("disabled-link").removeAttr("href");
+                                    }
+                                   $(document).ready(function(){
                                         $("#tunnistaudu").click(function(){
+                                            disableFooter();
                                             $.get("/certcheck", function() {
                                               $("#login-form").submit();
                                             }).fail(function() {
@@ -125,7 +140,7 @@
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
                         <div class="error-box">
-                            <h2 data-i18n="hst__virhe">Virhe</h2>
+                            <h1 data-i18n="hst__virhe">Virhe</h1>
                             <p data-i18n="hst__epaonnistui">Tunnistautuminen varmennekortilla epäonnistui.</p>
                             <c:choose>
                                 <c:when test="${error == '5' || error == '6' || error == '10' || error == '11' || error == '12' || error == '13' }">
@@ -134,8 +149,7 @@
                                         <li data-i18n="hst__sisainen_virhe">Tunnistautumisessa tapahtui virhe ja tunnistautuminen keskeytyi. Tietosi eivät kuitenkaan ole vaarantuneet, eivätkä ne voi päätyä vahingossa muiden tietoon.</li>
                                         <li data-i18n="hst__palautepyynto">Mikäli ongelma toistuu, lähetä meille siitä palautetta, jotta voimme selvittää ja korjata mahdollisesti toistuvan vian.</li>
                                         <li>
-                                            <a data-i18n="hst__palautelinkki" href="/sivut/info/virhepalaute/" target="_blank">Lähetä palautetta lomakkeella.</a>
-                                            <span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span>
+                                            <a data-i18n="hst__palautelinkki" href="/sivut/info/virhepalaute/">Lähetä palautetta lomakkeella.</a>
                                         </li>
                                     </ul>
                                 </c:when>
@@ -199,12 +213,12 @@
         </span>
         <div class="footer-links">
           <ul class="footer-links-info">
-              <li><a target="_blank" id="footer__tietoa_tunnistautumisesta" data-i18n="footer__tietoa_tunnistautumisesta" href="/sivut/info/tietoapalvelusta/">Tietoa Suomi.fi-tunnistuksesta</a><span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span></li>
-              <li><a target="_blank" id="footer__tietosuojaseloste" data-i18n="footer__tietosuojaseloste" href="/sivut/info/tietosuojaseloste/">Tietosuojaseloste</a><span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span></li>
+              <li><a id="footer__tietoa_tunnistautumisesta" data-i18n="footer__tietoa_tunnistautumisesta" href="/sivut/info/tietoapalvelusta/">Tietoa Suomi.fi-tunnistuksesta</a></li>
+              <li><a id="footer__tietosuojaseloste" data-i18n="footer__tietosuojaseloste" href="/sivut/info/tietosuojaseloste/">Tietosuojaseloste</a></li>
           </ul>
           <ul class="footer-links-feedback">
-              <li><a target="_blank" id="footer__palaute" data-i18n="footer__anna_palautetta" href="/sivut/info/palaute/">Anna palautetta</a><span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span></li>
-              <li><a target="_blank" id="footer__virhepalaute" data-i18n="footer__virhepalaute" href="/sivut/info/virhepalaute/">Ilmoita virheestä</a><span class="sr-only" data-i18n="footer__linkki_avautuu_uuteen_ikkunaan">Linkki avautuu uuteen ikkunaan</span></li>
+              <li><a id="footer__anna_palautetta" data-i18n="footer__anna_palautetta" href="/sivut/info/palaute/">Anna palautetta</a></li>
+              <li><a id="footer__virhepalaute" data-i18n="footer__virhepalaute" href="/sivut/info/virhepalaute/">Ilmoita virheestä</a></li>
           </ul>
         </div>
     </div>
