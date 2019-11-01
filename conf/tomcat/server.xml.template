@@ -95,7 +95,7 @@
                    keystorePass="{{ tomcat_cert_storepass }}"
                    clientAuth="false"
                    sslProtocol="TLS"
-                   sslEnabledProtocols="TLSv1,TLSv1.1,TLSv1.2"
+                   sslEnabledProtocols="-TLSv1,-TLSv1.1,+TLSv1.2"
                    ciphers="{{ tomcat_ciphers }}"
                    useServerCipherSuitesOrder="true"/>
 
@@ -159,9 +159,9 @@
                 <!-- Access log processes all example.
                      Documentation at: /docs/config/valve.html
                      Note: The pattern used is equivalent to using pattern="common" -->
-                <Valve className="org.apache.catalina.valves.AccessLogValve" directory="/data00/logs"
+                <!-- Valve className="org.apache.catalina.valves.AccessLogValve" directory="/data00/logs"
                        prefix="tomcat" suffix=".log"
-                       pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+                       pattern="%h %l %u %t &quot;%r&quot; %s %b" /-->
 
             </Host>
         </Engine>

@@ -43,8 +43,9 @@ public class CrlChecker {
 
     private static final Logger logger = LoggerFactory.getLogger(CrlChecker.class);
 
-
     private final LoadingCache<X500Principal, X509CRL> cache;
+
+    private X509CRL crl = null;
 
     @Autowired
     public CrlChecker(LoadingCache<X500Principal,X509CRL> loadingCache) {
@@ -64,7 +65,7 @@ public class CrlChecker {
     @Nonnull
     public X509CRL verifyAndValidate(X509Certificate iCACert, X509Certificate certificate) throws CertificateStatusException {
 
-        X509CRL crl = getCRL(certificate.getIssuerX500Principal());
+        crl = getCRL(certificate.getIssuerX500Principal());
 
         //Check CRL signature validity against intermediate CA
         try {
@@ -73,7 +74,6 @@ public class CrlChecker {
             logger.error("CRL signature is not valid", e);
             throw new CertificateStatusException("CRL signature is not valid.", CRL_SIGNATURE_FAILED);
         }
-        
         
         if ( crl.isRevoked(certificate) ) {
             logger.warn("Certificate is in CRL: "+ Integer.toString(crl.hashCode()));
@@ -84,5 +84,7 @@ public class CrlChecker {
 
         return crl;
     }
+
+    public X509CRL getCrl() { return crl; }
 
 }

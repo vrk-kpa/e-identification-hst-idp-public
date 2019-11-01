@@ -7,6 +7,10 @@
 <%
     final ProfileRequestContext prc = ExternalAuthentication.getProfileRequestContext(request.getParameter(ExternalAuthentication.CONVERSATION_KEY), request);
     final String samlRequestLang = AbstractAuthnHandler.resolveLanguage(prc);
+    Cookie langCookie = new Cookie("E-Identification-Lang", samlRequestLang);
+    langCookie.setPath("/");
+    langCookie.setSecure(true);
+    response.addCookie(langCookie);
     String cancel = request.getParameter("cancel");
     if (cancel != null) {
         request.setAttribute(ExternalAuthentication.AUTHENTICATION_ERROR_KEY, "User canceled authentication");
@@ -25,6 +29,7 @@
     <title data-i18n="hst__tunnistaudu_varmennekortilla">Tunnistaudu varmennekortilla</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/resources/img/favicon.png" sizes="160x160" type="image/png">
     <link rel="stylesheet" href="/resources/stylesheets/style.css">
     <script src="/resources/js/vendor/modernizr-2.8.3.min.js"></script>
     <script src="/resources/js/vendor/jquery.min.js"></script>
@@ -36,26 +41,9 @@
     <script src="/resources/js/vendor/i18nextXHRBackend.min.js"></script>
     <script src="/resources/js/vendor/domready.js"></script>
     <script src="/resources/js/idp_localisation.js"></script>
-    <script>
-        // clear, set lang cookie based on SAML
-        Cookies.remove('E-Identification-Lang');
-        document.cookie="E-Identification-Lang=<%=samlRequestLang%>;path=/;secure";
-
-        window.onpopstate = function(event) {
-            window.location.href += '&cancel=1';
-        };
-        history.pushState(null, null);
-           
-        function setLanguage(lang) {
-            idpLocalisation.setUserLanguageCookie(lang);
-            location.reload();
-        }
-        domready(function () {
-            var language = idpLocalisation.getLanguage();
-            idpLocalisation.localise(language, '#identification-service', '/static/localisation',
-                    'suomifi-tunnistaminen-resource-08_tunnistus_hst_labels');
-        });
-    </script>
+    <script src="/resources/js/hst-history.js"></script>
+    <script src="/resources/js/hst-lang-cookie.js"></script>
+    <script src="/resources/js/hst-disable-footer.js"></script>
     <!--[if lt IE 9]>
     <script src="/resources/js/vendor/respond.js"></script>
     <![endif]-->
@@ -92,28 +80,12 @@
                                 </form>
                                 <button id="tunnistaudu" data-i18n="hst__tunnistaudu">Tunnistaudu</button>
                                 <p class="hst-help small" data-i18n="hst__ohjelmisto_avautuu">Kortinlukijaohjelmisto avautuu. Varsinainen tunnistus tehdään kortinlukijaohjelmistolla. Anna kortin olla paikallaan lukijassa koko tunnistustapahtuman ajan.</p>
-                                <script>
-                                    function disableFooter() {
-                                        $(".footer-links").find("a").addClass("disabled-link").removeAttr("href");
-                                        $(".sign-in-info").find("a").addClass("disabled-link").removeAttr("href");
-                                    }
-                                   $(document).ready(function(){
-                                        $("#tunnistaudu").click(function(){
-                                            disableFooter();
-                                            $.get("/certcheck", function() {
-                                              $("#login-form").submit();
-                                            }).fail(function() {
-                                               window.location.replace(window.location.href + "&e=1");
-                                            });
-                                        });
-                                    });
-                                </script>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="row">
-                  <a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan<" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Palaa tunnistusvälineen valintaan</a>
+                  <a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan<" data-i18n="hst__peruuta" href="" >Palaa tunnistusvälineen valintaan</a>
                 </div>
                 <div class="row">
                     <div class="col-xs-12 col-md-8">
@@ -186,16 +158,10 @@
 
                             <c:choose>
                                 <c:when test="${error == '1'}">
-                                    <br><a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:history.back();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
+                                    <br><a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="" >Peruuta ja palaa tunnistusvälineen valintaan</a>
                                 </c:when>
                                 <c:otherwise>
-                                    <form id="login-error" action="<%= request.getContextPath() %>/authn/Error" method="post">
-                                        <input type="hidden" name="<%= ExternalAuthentication.CONVERSATION_KEY %>"
-                                               value="<c:out value="<%= request.getParameter(ExternalAuthentication.CONVERSATION_KEY) %>" />">
-                                        <input type="hidden" name="e"
-                                               value="<c:out value="${error}" />">
-                                    </form>
-                                    <br><a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="#" onclick="javascript:$('#login-error').submit();return false;">Peruuta ja palaa tunnistusvälineen valintaan</a>
+                                    <br><a class="go-back" title="Peruuta ja palaa tunnistusvälineen valintaan" data-i18n="hst__peruuta" href="" >Peruuta ja palaa tunnistusvälineen valintaan</a>
                                 </c:otherwise>
                             </c:choose>
                         </div>

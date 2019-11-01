@@ -6,6 +6,8 @@ PWD=$(pwd)
 SCRIPTFILE=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPTFILE")
 
+skip_depcheck="false"
+
 cd ${SCRIPTPATH}/..
 function usage
 {
@@ -18,6 +20,7 @@ function usage
         echo "  -d, --no-deps                           Don't build dependency list"
         echo
         echo "  -t, --tag <tag>                         Docker image tag"
+        echo "  -o, --skip-owasp-dep-check              Skip OWASP Maven dependency check plugin"
 }
 
 while [ "$1" != "" ]; do
@@ -39,6 +42,9 @@ while [ "$1" != "" ]; do
                                 ;;
         -d | --no-deps )        nodeps=1
                                 ;;
+        -o | --skip-owasp-dep-check )
+                                skip_depcheck="true"
+                                ;;
         -h | --help )           usage
                                 exit
                                 ;;
@@ -50,14 +56,15 @@ while [ "$1" != "" ]; do
 done
 
 # Pull the base image
-docker pull e-identification-docker-virtual.vrk-artifactory-01.eden.csc.fi/e-identification-tomcat-idp-3.4.1-base-image
+docker pull e-identification-docker-virtual.vrk-artifactory-01.eden.csc.fi/e-identification-tomcat-idp-3.4.6-base-image
 
+MAVEN_DEPCHECK_PARAMS="-Ddependency-check.skip=${skip_depcheck}"
 #build
 if [ "$nodeps" = "1" ]; then
-	mvn clean install
+	mvn clean install ${MAVEN_DEPCHECK_PARAMS}
 	mkdir -p target/site
 else
-	mvn clean install project-info-reports:dependencies -Ddependency.locations.enabled=false
+	mvn clean install project-info-reports:dependencies -Ddependency.locations.enabled=false ${MAVEN_DEPCHECK_PARAMS}
 fi
 
 IMAGE_NAME=e-identification-docker-virtual.vrk-artifactory-01.eden.csc.fi/e-identification-hst-idp:${TARGET_ENV}

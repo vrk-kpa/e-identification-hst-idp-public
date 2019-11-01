@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize"
+    default-destroy-method="destroy">
+
+    <!--
+    This bean defines a mapping between audit log categories and formatting strings. The default entry is
+    for compatibility with V2 audit logging.
+    -->
+    <util:map id="shibboleth.AuditFormattingMap">
+        <entry key="Shibboleth-Audit" value="%T|%b|%I|%SP|%P|%IDP|%bb|%III|%u|%ac|%attr|%n|%i|%X|%issuerCNValue|%serialNumberValue|%crlNumberValue|%lastUpdateValue|%isRevokedValue" />
+    </util:map>
+
+    <!-- Override the format of date/time fields in the log and/or convert to default time zone. -->
+    <!--
+    <bean id="shibboleth.AuditDateTimeFormat" class="java.lang.String" c:_0="YYYY-MM-dd'T'HH:mm:ss.SSSZZ" />
+    <util:constant id="shibboleth.AuditDefaultTimeZone" static-field="java.lang.Boolean.TRUE" />
+    -->
+
+    <!-- Allows auditing to be disabled selectively for particular profiles/flows. -->
+    <util:list id="shibboleth.AuditSuppressedProfiles">
+        <value>http://shibboleth.net/ns/profiles/status</value>
+        <value>http://shibboleth.net/ns/profiles/mdquery</value>
+    </util:list>
+
+    <bean id="shibboleth.PostDecodeAuditExtractors" parent="shibboleth.DefaultPostDecodeAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+    <bean id="shibboleth.PostLookupAuditExtractors" parent="shibboleth.DefaultPostLookupAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+    <bean id="shibboleth.PostAssertionAuditExtractors" parent="shibboleth.DefaultPostAssertionAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+    <bean id="AuditLoggerValueExtractor" parent="shibboleth.ContextFunctions.Scripted" factory-method="inlineScript" abstract="true">
+        <constructor-arg>
+            <value>
+                <![CDATA[
+                var getAuditLoggerValue = function() {
+                var authnContext = input.getSubcontext("net.shibboleth.idp.authn.context.AuthenticationContext");
+                var auditLoggerContext = authnContext.getSubcontext("fi.vm.kapa.identification.shibboleth.extauthn.context.AuditLoggerContext");
+                var result = "";
+                if ( auditLoggerContext != null ) {
+                  switch ( custom ) {
+                    case "CRLNumber":
+                      result = auditLoggerContext.getCRLNumber();
+                      break;
+                    case "serialNumber":
+                      result = auditLoggerContext.getSerialNumber();
+                      break;
+                    case "issuerCN":
+                      result = auditLoggerContext.getIssuerCN();
+                      break;
+                    case "isRevoked":
+                      result = auditLoggerContext.isRevoked();
+                      break;
+                    case "lastUpdate":
+                      result = auditLoggerContext.getLastUpdate();
+                      break;
+                  }
+                }
+                return result;
+              }
+              getAuditLoggerValue();
+              ]]>
+            </value>
+        </constructor-arg>
+    </bean>
+
+    <bean id="shibboleth.PostResponseAuditExtractors" parent="shibboleth.DefaultPostResponseAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+                <entry>
+                    <key>
+                        <bean class="java.lang.String">
+                            <constructor-arg value="crlNumberValue"/>
+                        </bean>
+                    </key>
+                    <bean id="crlNumber" parent="AuditLoggerValueExtractor" p:customObject="CRLNumber">
+                    </bean>
+                </entry>
+                <entry>
+                    <key>
+                        <bean class="java.lang.String">
+                            <constructor-arg value="serialNumberValue"/>
+                        </bean>
+                    </key>
+                    <bean id="serialNumber" parent="AuditLoggerValueExtractor" p:customObject="serialNumber">
+                    </bean>
+                </entry>
+                <entry>
+                    <key>
+                        <bean class="java.lang.String">
+                            <constructor-arg value="issuerCNValue"/>
+                        </bean>
+                    </key>
+                    <bean id="issuerCN" parent="AuditLoggerValueExtractor" p:customObject="issuerCN">
+                    </bean>
+                </entry>
+                <entry>
+                    <key>
+                        <bean class="java.lang.String">
+                            <constructor-arg value="isRevokedValue"/>
+                        </bean>
+                    </key>
+                    <bean id="isRevoked" parent="AuditLoggerValueExtractor" p:customObject="isRevoked">
+                    </bean>
+                </entry>
+                <entry>
+                    <key>
+                        <bean class="java.lang.String">
+                            <constructor-arg value="lastUpdateValue"/>
+                        </bean>
+                    </key>
+                    <bean id="lastUpdate" parent="AuditLoggerValueExtractor" p:customObject="lastUpdate">
+                    </bean>
+                </entry>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="shibboleth.LogoutRequestAuditExtractors" parent="shibboleth.DefaultLogoutRequestAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+    <bean id="shibboleth.LogoutAuditExtractors" parent="shibboleth.DefaultLogoutAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+    <bean id="shibboleth.ErrorViewAuditExtractors" parent="shibboleth.DefaultErrorViewAuditExtractors" lazy-init="true">
+        <property name="sourceMap">
+            <map merge="true">
+            </map>
+        </property>
+    </bean>
+
+</beans>

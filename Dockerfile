@@ -1,6 +1,6 @@
 # Pull tomcat base image && \
 
-FROM e-identification-docker-virtual.vrk-artifactory-01.eden.csc.fi/e-identification-tomcat-idp-3.4.1-base-image
+FROM e-identification-docker-virtual.vrk-artifactory-01.eden.csc.fi/e-identification-tomcat-idp-3.4.6-base-image
 
 # Copy files
 
@@ -21,6 +21,7 @@ RUN mkdir -p /opt/shibboleth-idp/edit-webapp/WEB-INF/jsp && \
     cp /tmp/conf/shibboleth/views/hst-prompt.jsp /opt/shibboleth-idp/edit-webapp/WEB-INF/jsp/hst-prompt.jsp && \
     cp /tmp/conf/shibboleth/idp-rebuild.sh /opt/shibboleth-idp/bin/idp-rebuild.sh && \
     cp /tmp/conf/tomcat/logging.properties /usr/share/tomcat/conf/logging.properties && \
+    cp /tmp/conf/shibboleth/conf/audit.xml /opt/shibboleth-idp/conf/audit.xml && \
 :                             && \
 : Templates                   && \
 :                             && \

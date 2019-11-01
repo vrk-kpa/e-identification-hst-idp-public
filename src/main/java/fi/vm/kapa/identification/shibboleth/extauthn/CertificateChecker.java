@@ -24,14 +24,23 @@
 package fi.vm.kapa.identification.shibboleth.extauthn;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.*;
 import java.security.cert.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import javax.security.auth.x500.X500Principal;
 
 import fi.vm.kapa.identification.shibboleth.extauthn.cache.CrlChecker;
+import fi.vm.kapa.identification.shibboleth.extauthn.context.AuditLoggerContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DEROctetString;
+import org.cryptacular.x509.dn.NameReader;
+import org.cryptacular.x509.dn.StandardAttributeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -47,6 +56,12 @@ public class CertificateChecker {
     private final Map<X500Principal, X509Certificate> icaMap = new HashMap<>();
 
     private final CrlChecker crlChecker;
+
+    private final String CRL_NUMBER_OID = "2.5.29.20";
+
+    private final String DATE_TIME_PATTERN = "yyyyMMdd'T'HHmmss'Z'";
+
+    private AuditLoggerContext auditLoggerContext = null;
 
     public CertificateChecker(String icaPath,
                               String caPath,
@@ -71,7 +86,15 @@ public class CertificateChecker {
         X509Certificate issuerCertificate = getValidIssuerCertificate(certificate);
 
         // 3) check certificate revocation list status
-        crlChecker.verifyAndValidate(issuerCertificate, certificate);
+        try {
+            crlChecker.verifyAndValidate(issuerCertificate, certificate);
+            auditLoggerContext = initializeAuditLoggerContext(certificate, crlChecker.getCrl(), false);
+        } catch (CertificateStatusException cse) {
+            if ( cse.getErrorCode() == CertificateStatusException.ErrorCode.CERT_REVOKED ) {
+                auditLoggerContext = initializeAuditLoggerContext(certificate, crlChecker.getCrl(), true);
+            }
+            throw cse;
+        }
 
         return certificate;
 
@@ -118,5 +141,66 @@ public class CertificateChecker {
             logger.error("Error reading ca/ica certificates from path " + certDirPath, ioe);
         }
     }
+
+    private AuditLoggerContext initializeAuditLoggerContext(X509Certificate certificate, X509CRL crl, boolean isRevoked) {
+
+        if ( Objects.isNull(certificate) || Objects.isNull(crl) ) {
+            return null;
+        }
+
+        final String serialNumber = certificate.getSerialNumber().toString(16).toUpperCase();
+        final String issuerCN = new NameReader(certificate).readIssuer().getValue(StandardAttributeType.CommonName);
+        final String crlNumber = toHex(getCRLNumber(crl));
+        final String lastUpdate = DateFormatUtils.format(crl.getThisUpdate(), DATE_TIME_PATTERN);
+
+        return new AuditLoggerContext(serialNumber, crlNumber, issuerCN, lastUpdate, isRevoked);
+    }
+
+    private String getCRLNumber(X509CRL crl) {
+
+        final byte[] encodedCrlNumber = crl.getExtensionValue(CRL_NUMBER_OID);
+        String crlNumber = "";
+
+        try {
+            if (encodedCrlNumber != null) {
+                ASN1Primitive derObject = toDERObject(encodedCrlNumber);
+                if (derObject instanceof DEROctetString) {
+                    DEROctetString derOctetString = (DEROctetString) derObject;
+
+                    derObject = toDERObject(derOctetString.getOctets());
+                    crlNumber = derObject.toString();
+                } else {
+                    logger.warn("CRL Number extraction failed");
+                }
+            } else {
+                logger.warn("CRL Number extension not present");
+            }
+        } catch (IOException iex) {
+            logger.warn("Exception while extracting CRL Number", iex);
+        }
+
+        return crlNumber;
+    }
+
+    private ASN1Primitive toDERObject(byte[] data) throws IOException {
+
+        ByteArrayInputStream inStream = new ByteArrayInputStream(data);
+        ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
+
+        return asnInputStream.readObject();
+    }
+
+    private String toHex(String str) {
+
+        try {
+            return String.format("%X", new BigInteger(str));
+        } catch (NumberFormatException | NullPointerException ex) {
+            logger.warn("Failed to convert crl number to hex format", ex);
+        }
+
+        return "";
+    }
+
+    public AuditLoggerContext getAuditLoggerContext() { return auditLoggerContext; }
 
 }

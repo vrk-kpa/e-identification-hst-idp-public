@@ -24,6 +24,7 @@
 package fi.vm.kapa.identification.shibboleth.extauthn.authn;
 
 import fi.vm.kapa.identification.shibboleth.extauthn.CertificateChecker;
+import fi.vm.kapa.identification.shibboleth.extauthn.context.AuditLoggerContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.context.HSTCardContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.context.OrganizationCardContext;
 import fi.vm.kapa.identification.shibboleth.extauthn.exception.CertificateStatusException;
@@ -96,11 +97,21 @@ public abstract class AbstractAuthnHandler {
                 final RDNSequence dn = new NameReader(cert).readSubject();
                 final String subjectSerialNumber = dn.getValue(StandardAttributeType.SerialNumber);
 
+                setAuditLoggerSubContext(httpRequest, key, certificateChecker.getAuditLoggerContext());
+
                 // set sub context and finish external authentication
                 setIDCardSubContext(httpRequest, key, cert, subjectSerialNumber);
                 httpRequest.setAttribute(ExternalAuthentication.PRINCIPAL_NAME_KEY, subjectSerialNumber);
                 ExternalAuthentication.finishExternalAuthentication(key, httpRequest, httpResponse);
             } catch ( CertificateStatusException ste ) {
+                if ( ste.getErrorCode() == CertificateStatusException.ErrorCode.CERT_REVOKED ) {
+                    try {
+                        setAuditLoggerSubContext(httpRequest, key, certificateChecker.getAuditLoggerContext());
+                        logRevokedCertificateInCRL(certificateChecker.getAuditLoggerContext());
+                    } catch (CertificateStatusException cse) {
+                        log.warn("Audit logger sub context not valid", cse);
+                    }
+                }
                 httpResponse.sendRedirect(createErrorURL(key, ste.getErrorCode()));
             }
         } catch (final ExternalAuthenticationException e) {
@@ -141,6 +152,19 @@ public abstract class AbstractAuthnHandler {
         else {
             log.warn("Certificate type is not supported");
             throw new CertificateStatusException("Certificate type is not supported.", CertificateStatusException.ErrorCode.CERT_TYPE_NOT_SUPPORTED);
+        }
+    }
+
+    private void setAuditLoggerSubContext(HttpServletRequest httpRequest, String key, AuditLoggerContext auditLoggerContext) throws ExternalAuthenticationException, CertificateStatusException {
+
+        AuthenticationContext ac = ExternalAuthentication.getProfileRequestContext(key, httpRequest).getSubcontext(AuthenticationContext.class);
+        if ( ac == null ) {
+            log.warn("Authentication context not valid");
+            throw new CertificateStatusException("Authentication context not valid", INTERNAL_ERROR);
+        }
+
+        if ( auditLoggerContext != null ) {
+            ac.addSubcontext(auditLoggerContext);
         }
     }
 
@@ -202,6 +226,18 @@ public abstract class AbstractAuthnHandler {
         while (params.hasMoreElements()) {
             String param = params.nextElement();
             log.debug("--" + param + " <--> " + httpRequest.getParameter(param));
+        }
+    }
+
+    private void logRevokedCertificateInCRL(AuditLoggerContext auditLoggerContext) {
+        if ( auditLoggerContext != null ) {
+            log.warn("{}|{}|{}|{}|{}",
+                auditLoggerContext.getIssuerCN(),
+                auditLoggerContext.getSerialNumber(),
+                auditLoggerContext.getCRLNumber(),
+                auditLoggerContext.getLastUpdate(),
+                auditLoggerContext.isRevoked()
+            );
         }
     }
 
