@@ -91,14 +91,14 @@
                     <div class="col-xs-12 col-md-8">
                         <div class="sign-in-info">
                             <p class="small">
-                                <span data-i18n="hst__tunnistautuminen_mahdollista">Tunnistautuminen on mahdollista sähköisellä henkilökortilla ja Väestörekisterikeskuksen myöntämällä sosiaali- ja terveydenhuollon ammattikortilla sekä organisaatiokortilla.</span>
+                                <span data-i18n="hst__tunnistautuminen_mahdollista">Voit tunnistautua henkilökortilla, organisaatiokortilla tai sosiaali- ja terveydenhuollon ammattikortilla, henkilöstökortilla tai toimijakortilla.</span>
                             </p>
                             <p class="small">
                                 <span data-i18n="hst__varmennekortin_lisaksi">Varmennekortin lisäksi tarvitset kortinlukijalaitteen ja -ohjelmiston. Kortinlukijaohjelmiston voit ladata maksutta</span>
-                                <a data-i18n="[href]hst__kortinlukijaohjelmisto_url;hst__kortinlukijaohjelmisto">Väestörekisterikeskuksen verkkosivuilta.</a>
+                                <a data-i18n="[href]hst__kortinlukijaohjelmisto_url;hst__kortinlukijaohjelmisto">Digi- ja väestötietoviraston verkkosivuilta.</a>
                             </p>
                             <p class="small">
-                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen</span>
+                                <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Digi- ja väestötietoviraston</span>
                                 <a data-i18n="[href]hst__testaa_palvelussa_url;hst__testaa_palvelussa">Testaa varmenteesi -palvelussa.</a>
                                 <span data-i18n="hst__voit_testata_2"></span>
                             </p>
@@ -150,7 +150,7 @@
                                         </c:otherwise>
                                     </c:choose>
                                     <p>
-                                        <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Väestörekisterikeskuksen </span>
+                                        <span data-i18n="hst__voit_testata">Voit testata kortin toimivuuden Digi- ja väestötietoviraston </span>
                                         <a data-i18n="[href]hst__testaa_palvelussa_url;hst__testaa_palvelussa">Testaa varmenteesi -palvelussa</a>
                                     </p>
                                 </c:otherwise>
@@ -180,7 +180,7 @@
         <div class="footer-links">
           <ul class="footer-links-info">
               <li><a id="footer__tietoa_tunnistautumisesta" data-i18n="footer__tietoa_tunnistautumisesta" href="/sivut/info/tietoapalvelusta/">Tietoa Suomi.fi-tunnistuksesta</a></li>
-              <li><a id="footer__tietosuojaseloste" data-i18n="footer__tietosuojaseloste" href="/sivut/info/tietosuojaseloste/">Tietosuojaseloste</a></li>
+              <li><a id="footer__tietosuoja" data-i18n="[href]footer__tietosuoja_link;footer__tietosuoja">Tietosuoja</a></li>
           </ul>
           <ul class="footer-links-feedback">
               <li><a id="footer__anna_palautetta" data-i18n="footer__anna_palautetta" href="/sivut/info/palaute/">Anna palautetta</a></li>
